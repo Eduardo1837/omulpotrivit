@@ -13,26 +13,26 @@
 </head>
 <body>
 
-    <h1>Verificare Conexiune Bază de Date - OmulPotrivit</h1>
+   <h2>EAGER LOADING (with listings preîncărcate):</h2>
+@foreach($categoriesEager as $cat)
+    <div class="card">
+        <strong>{{ $cat->name }}</strong> — {{ $cat->listings->count() }} anunțuri
+        {{-- listings deja în memorie, 0 query-uri noi --}}
+    </div>
+@endforeach
 
-    <h2>Categorii salvate:</h2>
-    <ul>
-        @foreach($categories as $category)
-            <li><strong>{{ $category->name }}</strong> - {{ $category->description }}</li>
-        @endforeach
-    </ul>
+<h2>LAZY LOADING (listings încărcate la acces):</h2>
+@foreach($categoriesLazy as $cat)
+    <div class="card">
+        <strong>{{ $cat->name }}</strong> — {{ $cat->listings->count() }} anunțuri
+        {{-- fiecare ->listings face un query nou în baza de date --}}
+    </div>
+@endforeach
 
-    <h2>Anunțuri active:</h2>
-    @foreach($listings as $listing)
-        <div class="card">
-            <h3>{{ $listing->title }} <span class="badge">{{ $listing->category->name }}</span></h3>
-            <p><strong>Descriere:</strong> {{ $listing->description }}</p>
-            <p><strong>Locație:</strong> {{ $listing->city }}</p>
-            <p><strong>Tarif:</strong> {{ $listing->price }} RON ({{ $listing->priceType }})</p>
-            <hr>
-            <p><small>Prestator: {{ $listing->provider->name }} | Contact: {{ $listing->provider->phone }}</small></p>
-        </div>
-    @endforeach
+<h2>Anunțuri din categoria ID=1 (via ListingAccessor):</h2>
+@foreach($listingsFromCategory as $listing)
+    <div class="card">{{ $listing->title }}</div>
+@endforeach
 
 </body>
 </html>

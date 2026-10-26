@@ -4,6 +4,9 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Models\Category;
 use App\Models\Listing;
+use App\Models\Tag;
+use App\Accessors\CategoryAccessor;
+use App\Accessors\ListingAccessor;
 
 Route::get('/', function () {
     return view('welcome');
@@ -20,15 +23,27 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/laborator', function () {
+
+    $categoryAccessor = new CategoryAccessor();
+    $listingAccessor  = new ListingAccessor();
     // Extragem toate categoriile
-    $categories = Category::all();
+
+    // EAGER LOADING — via Accessor (Category cu listings incluse)
+    $categoriesEager = $categoryAccessor->getAll();
+
+    // LAZY LOADING — Category::all() fără with()
+    $categoriesLazy = Category::all();
     
     // Extragem anunțurile, aducând automat și datele despre prestator și categorie (Eager Loading)
-    $listings = Listing::with(['provider', 'category'])->get();
+    $listingsFromCategory = $listingAccessor->getByCategoryId(1);
+
+    $tags = Tag::all();
 
     return view('laborator', [
-        'categories' => $categories,
-        'listings' => $listings
+        'categoriesEager'      => $categoriesEager,
+        'categoriesLazy'       => $categoriesLazy,
+        'listingsFromCategory' => $listingsFromCategory,
+        'tags' => $tags,
     ]);
 });
 

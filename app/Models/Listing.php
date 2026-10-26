@@ -15,7 +15,9 @@ class Listing extends Model
         'priceType', 
         'city', 
         'imageUrl', 
-        'status'
+        'status',
+        'views_count',
+        'is_featured'
     ];
 
    

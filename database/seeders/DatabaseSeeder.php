@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\Listing;
+use App\Models\Tag;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
@@ -72,7 +73,9 @@ class DatabaseSeeder extends Seeder
             'price' => 80,
             'priceType' => 'pe oră',
             'city' => 'Suceava',
-            'status' => 'activ'
+            'status' => 'activ',
+            'views_count' => 0,
+            'is_featured' => false,
         ]);
 
         Listing::create([
@@ -83,7 +86,9 @@ class DatabaseSeeder extends Seeder
             'price' => 1500,
             'priceType' => 'fix',
             'city' => 'Remote',
-            'status' => 'activ'
+            'status' => 'activ',
+            'views_count' => 0,
+            'is_featured' => false,
         ]);
 
         // Anunțuri Andrei (Gaming)
@@ -95,7 +100,9 @@ class DatabaseSeeder extends Seeder
             'price' => 100,
             'priceType' => 'pe oră',
             'city' => 'Remote',
-            'status' => 'activ'
+            'status' => 'activ',
+            'views_count' => 0,
+            'is_featured' => false,
         ]);
 
         Listing::create([
@@ -106,7 +113,9 @@ class DatabaseSeeder extends Seeder
             'price' => 50,
             'priceType' => 'fix',
             'city' => 'Remote',
-            'status' => 'activ'
+            'status' => 'activ',
+            'views_count' => 0,
+            'is_featured' => false,
         ]);
 
         Listing::create([
@@ -117,7 +126,9 @@ class DatabaseSeeder extends Seeder
             'price' => 20,
             'priceType' => 'fix',
             'city' => 'Remote',
-            'status' => 'activ'
+            'status' => 'activ',
+            'views_count' => 0,
+            'is_featured' => false,
         ]);
 
         // Anunțuri Maria (Gastronomie & Casă)
@@ -129,7 +140,9 @@ class DatabaseSeeder extends Seeder
             'price' => 45,
             'priceType' => 'fix',
             'city' => 'Botoșani',
-            'status' => 'activ'
+            'status' => 'activ',
+            'views_count' => 0,
+            'is_featured' => false,
         ]);
 
         Listing::create([
@@ -140,7 +153,9 @@ class DatabaseSeeder extends Seeder
             'price' => 120,
             'priceType' => 'pe lucrare',
             'city' => 'Botoșani',
-            'status' => 'activ'
+            'status' => 'activ',
+            'views_count' => 0,
+            'is_featured' => false,
         ]);
 
         Listing::create([
@@ -151,7 +166,13 @@ class DatabaseSeeder extends Seeder
             'price' => 40,
             'priceType' => 'pe oră',
             'city' => 'Botoșani',
-            'status' => 'activ'
+            'status' => 'activ',
+            'views_count' => 0,
+            'is_featured' => true,
         ]);
+
+        Tag::create(['name' => 'Programare', 'slug' => 'programare']);
+        Tag::create(['name' => 'Gaming', 'slug' => 'gaming']);
+        Tag::create(['name' => 'Remote', 'slug' => 'remote']);
     }
 }
