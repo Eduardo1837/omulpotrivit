@@ -47,7 +47,7 @@ Route::get('/laborator', function () {
 });
 
 Route::get('/listings', [ListingController::class, 'index'])->name('listings.index');
-Route::get('/listings/{id}', [ListingController::class, 'details'])->name('listings.details');
+Route::get('/listings/{id}', [ListingController::class, 'details'])->whereNumber('id')->name('listings.details');
 Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
 
 // ----------------------------------------------------

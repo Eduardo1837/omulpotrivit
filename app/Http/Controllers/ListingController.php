@@ -27,7 +27,7 @@ class ListingController extends Controller
         return ListingResource::collection($listings);
     }
 
-    public function details(int $id)
+    public function details(int|string $id)
     {
         $listing = $this->listingAccessor->getById($id);
         if (!$listing) {
@@ -85,7 +85,7 @@ class ListingController extends Controller
     /**
      * 3. EDIT (GET): Afișează formularul populat cu datele entității existente
      */
-    public function edit(int $id)
+    public function edit(int|string $id)
     {
         $listing = $this->listingAccessor->getById($id);
         if (!$listing) abort(404, 'Anunțul nu există.');
@@ -101,7 +101,7 @@ class ListingController extends Controller
     /**
      * 4. EDIT (POST): Salvează modificările aduse entității
      */
-    public function update(Request $request, int $id)
+    public function update(Request $request, int|string $id)
     {
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
