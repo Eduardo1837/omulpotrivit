@@ -75,9 +75,9 @@ class ListingController extends Controller
         $validated['status'] = 'activ';
 
         // Apel prin Accessor (AddEntity)
-        $this->listingAccessor->create($validated);
+        $listing = $this->listingAccessor->create($validated);
 
-        return redirect()->route('listings.index')->with('success', 'Anunțul a fost creat cu succes!');
+        return redirect()->route('listings.details', $listing->id)->with('success', 'Anuntul a fost creat cu succes!');
     }
 
     // --- OPERAȚIA EDIT ---

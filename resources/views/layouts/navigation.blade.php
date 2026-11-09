@@ -16,8 +16,12 @@
                         {{ __('Acasă') }}
                     </x-nav-link>
 
-                    <x-nav-link :href="route('listings.index')" :active="request()->routeIs('listings.*') && !request()->routeIs('admin.*')">
+                    <x-nav-link :href="route('listings.index')" :active="request()->routeIs('listings.index') || request()->routeIs('listings.details')">
                         {{ __('Anunțuri') }}
+                    </x-nav-link>
+
+                    <x-nav-link :href="route('listings.create')" :active="request()->routeIs('listings.create')" class="text-emerald-600 font-semibold">
+                        + {{ __('Publică Anunț') }}
                     </x-nav-link>
 
                     @if(Auth::user()?->role === 'admin')
@@ -90,8 +94,12 @@
                 {{ __('Acasă') }}
             </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('listings.index')" :active="request()->routeIs('listings.*') && !request()->routeIs('admin.*')">
+            <x-responsive-nav-link :href="route('listings.index')" :active="request()->routeIs('listings.index') || request()->routeIs('listings.details')">
                 {{ __('Anunțuri') }}
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('listings.create')" :active="request()->routeIs('listings.create')" class="text-emerald-600 font-semibold">
+                + {{ __('Publică Anunț') }}
             </x-responsive-nav-link>
 
             @if(Auth::user()?->role === 'admin')
