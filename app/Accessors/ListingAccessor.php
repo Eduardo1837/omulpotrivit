@@ -55,4 +55,20 @@ class ListingAccessor
     {
         return (bool) Listing::destroy($id);
     }
+
+    /**
+     * Salvare entitate nouă (echivalent AddEntity din cerință)
+     */
+    public function addEntity(array $data): Listing
+    {
+        return $this->create($data);
+    }
+
+    /**
+     * Actualizare entitate existentă (echivalent UpdateEntity din cerință)
+     */
+    public function updateEntity(int|string $id, array $data): bool
+    {
+        return $this->update($id, $data);
+    }
 }

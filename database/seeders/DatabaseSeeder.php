@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         // --- 1. Creăm Utilizatorii ---
         $eduard = User::create([
-            'name' => 'Eduard-Valentin Apataschivei',
+            'name' => 'Eduard-Valentin Aparaschivei',
             'email' => 'eduard@master.usv',
             'password' => Hash::make('parola123'),
             'phone' => '0700112233',

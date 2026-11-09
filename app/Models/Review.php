@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Review extends Model
 {
-    protected $fillable = ['listing_id', 'author_id', 'rating', 'comment'];
+    protected $fillable = ['listing_id', 'author_id', 'rating', 'comment', 'is_hidden'];
 
     public function listing()
     {
