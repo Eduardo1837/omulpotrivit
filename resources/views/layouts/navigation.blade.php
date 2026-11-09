@@ -20,6 +20,10 @@
                         {{ __('Anunțuri') }}
                     </x-nav-link>
 
+                    <x-nav-link :href="route('listings.my')" :active="request()->routeIs('listings.my')">
+                        {{ __('Anunțurile mele') }}
+                    </x-nav-link>
+
                     <x-nav-link :href="route('listings.create')" :active="request()->routeIs('listings.create')" class="text-emerald-600 font-semibold">
                         + {{ __('Publică Anunț') }}
                     </x-nav-link>
@@ -56,6 +60,10 @@
                                 🛡️ {{ __('Admin Panel') }}
                             </x-dropdown-link>
                         @endif
+
+                        <x-dropdown-link :href="route('listings.my')">
+                            📋 {{ __('Anunțurile mele') }}
+                        </x-dropdown-link>
 
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Profile') }}
@@ -96,6 +104,10 @@
 
             <x-responsive-nav-link :href="route('listings.index')" :active="request()->routeIs('listings.index') || request()->routeIs('listings.details')">
                 {{ __('Anunțuri') }}
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('listings.my')" :active="request()->routeIs('listings.my')">
+                {{ __('Anunțurile mele') }}
             </x-responsive-nav-link>
 
             <x-responsive-nav-link :href="route('listings.create')" :active="request()->routeIs('listings.create')" class="text-emerald-600 font-semibold">

@@ -19,11 +19,11 @@ class ListingController extends Controller
         $this->categoryAccessor = $categoryAccessor;
     }
 
-    // --- ACȚIUNILE INDEX & DETAILS (din Exercițiul 1) ---
+    // --- ACȚIUNILE INDEX & DETAILS ---
     public function index()
     {
-         $listings = $this->listingAccessor->getAll();
-        // ListingResource::collection realizează maparea automată a listei
+        $listings = $this->listingAccessor->getAll();
+
         if (request()->wantsJson()) {
             return ListingResource::collection($listings);
         }
@@ -36,14 +36,46 @@ class ListingController extends Controller
     {
         $listing = $this->listingAccessor->getById($id);
         if (!$listing) {
-            return response()->json(['message' => 'Entitatea nu a fost găsită.'], 404);
+            if (request()->wantsJson()) {
+                return response()->json(['message' => 'Entitatea nu a fost găsită.'], 404);
+            }
+            abort(404, 'Anunțul nu există.');
         }
-        // new ListingResource mappează automat o singură entitate
+
         if (request()->wantsJson()) {
             return new ListingResource($listing);
         }
 
         return view('listings.details', ['listing' => new ListingViewModel($listing)]);
+    }
+
+    /**
+     * Secțiunea "Anunțurile Mele" pentru utilizatorul autentificat
+     */
+    public function myListings()
+    {
+        $listings = auth()->user()->listings()->with(['category', 'reviews'])->latest()->get();
+        $canCreateMore = $this->canUserCreateListing();
+
+        return view('listings.my-listings', compact('listings', 'canCreateMore'));
+    }
+
+    /**
+     * Verifică dacă utilizatorul poate crea un nou anunț:
+     * Utilizatorul cu anunț nepromovat (neprelungit/neplătit) are voie la MAXIMUM 1 anunț.
+     */
+    protected function canUserCreateListing(): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+
+        $count = $user->listings()->count();
+        if ($count === 0) {
+            return true;
+        }
+
+        // Dacă are cel puțin un anunț, poate crea mai multe DOAR dacă cel puțin unul este promovat (is_featured = true)
+        return $user->listings()->where('is_featured', true)->exists();
     }
 
     // --- OPERAȚIA CREATE ---
@@ -53,6 +85,10 @@ class ListingController extends Controller
      */
     public function create()
     {
+        if (!$this->canUserCreateListing()) {
+            return redirect()->route('listings.my')->with('error', 'Ai atins limita de 1 anunț gratuit. Promovează anunțul curent pentru a putea publica mai multe anunțuri.');
+        }
+
         // Obținem categoriile pentru lista de selecție (dropdown)
         $categories = $this->categoryAccessor->getAll();
 
@@ -66,6 +102,10 @@ class ListingController extends Controller
      */
     public function store(Request $request)
     {
+        if (!$this->canUserCreateListing()) {
+            return redirect()->route('listings.my')->with('error', 'Ai atins limita de 1 anunț gratuit. Promovează anunțul existent pentru a publica altele.');
+        }
+
         // Validarea datelor (text, select, checkbox)
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
@@ -76,17 +116,16 @@ class ListingController extends Controller
             'category_id' => 'required|exists:categories,id',
         ]);
 
-        // Tratarea controlului CheckBox (dacă nu e bifat, browserul nu trimite valoarea)
+        // Tratarea controlului CheckBox
         $validated['is_featured'] = $request->boolean('is_featured');
         
-        // Atribuim provider-ul logat sau primul utilizator (ID 1) pentru teste
         $validated['provider_id'] = auth()->id() ?? 1;
         $validated['status'] = 'activ';
 
-        // Apel prin Accessor (AddEntity)
+        // Apel prin Accessor
         $listing = $this->listingAccessor->create($validated);
 
-        return redirect()->route('listings.details', $listing->id)->with('success', 'Anuntul a fost creat cu succes!');
+        return redirect()->route('listings.details', $listing->id)->with('success', 'Anunțul a fost creat cu succes!');
     }
 
     // --- OPERAȚIA EDIT ---
@@ -123,7 +162,7 @@ class ListingController extends Controller
 
         $validated['is_featured'] = $request->boolean('is_featured');
 
-        // Apel prin Accessor (UpdateEntity)
+        // Apel prin Accessor
         $this->listingAccessor->update($id, $validated);
 
         return redirect()->route('listings.details', $id)->with('success', 'Anunțul a fost actualizat cu succes!');
