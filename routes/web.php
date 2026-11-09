@@ -56,7 +56,10 @@ Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index'
 Route::middleware(['auth'])->group(function () {
     
     Route::get('/dashboard', function () {
-        return view('dashboard');
+        if (auth()->user()?->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+        return redirect()->route('home');
     })->middleware(['verified'])->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

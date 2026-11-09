@@ -31,10 +31,10 @@
                     
                     @if (Route::has('login'))
                         @auth
-                            <a href="{{ url('/dashboard') }}" class="text-gray-600 hover:text-gray-900 font-medium px-3 py-2">Dashboard</a>
                             @if(auth()->user()->role === 'admin')
-                                <a href="{{ route('admin.dashboard') }}" class="text-blue-600 hover:text-blue-800 font-medium px-3 py-2">Admin</a>
+                                <a href="{{ route('admin.dashboard') }}" class="text-indigo-600 hover:text-indigo-800 font-semibold px-3 py-2">🛡️ Panou Admin</a>
                             @endif
+                            <a href="{{ route('profile.edit') }}" class="text-gray-600 hover:text-gray-900 font-medium px-3 py-2">Profilul meu</a>
                         @else
                             <a href="{{ route('login') }}" class="text-gray-600 hover:text-gray-900 font-medium px-3 py-2">Log in</a>
                             @if (Route::has('register'))
