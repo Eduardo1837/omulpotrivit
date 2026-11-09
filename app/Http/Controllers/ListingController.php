@@ -6,6 +6,7 @@ use App\Accessors\ListingAccessor;
 use App\Accessors\CategoryAccessor;
 use App\ViewModels\ListingViewModel;
 use Illuminate\Http\Request;
+use App\Http\Resources\ListingResource;
 
 class ListingController extends Controller
 {
@@ -21,18 +22,19 @@ class ListingController extends Controller
     // --- ACȚIUNILE INDEX & DETAILS (din Exercițiul 1) ---
     public function index()
     {
-        $listings = $this->listingAccessor->getAll();
-        $viewModels = $listings->map(fn($l) => new ListingViewModel($l));
-
-        return view('listings.index', ['listings' => $viewModels]);
+         $listings = $this->listingAccessor->getAll();
+        // ListingResource::collection realizează maparea automată a listei
+        return ListingResource::collection($listings);
     }
 
     public function details(int $id)
     {
         $listing = $this->listingAccessor->getById($id);
-        if (!$listing) abort(404, 'Anunțul nu există.');
-
-        return view('listings.details', ['listing' => new ListingViewModel($listing)]);
+        if (!$listing) {
+            return response()->json(['message' => 'Entitatea nu a fost găsită.'], 404);
+        }
+        // new ListingResource mappează automat o singură entitate
+        return new ListingResource($listing);
     }
 
     // --- OPERAȚIA CREATE ---
