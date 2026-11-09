@@ -25,35 +25,38 @@ Route::get('/', function () {
 
     $categories = Category::all();
 
-
    return view('welcome', compact('recentListings', 'categories'));
 })->name('home');
 
-Route::get('/laborator', function () {
-    $categoryAccessor = new CategoryAccessor();
-    $listingAccessor  = new ListingAccessor();
-    
-    $categoriesEager = $categoryAccessor->getAll();
-    $categoriesLazy = Category::all();
-    $listingsFromCategory = $listingAccessor->getByCategoryId(1);
-    $tags = Tag::all();
-
-    return view('laborator', [
-        'categoriesEager'      => $categoriesEager,
-        'categoriesLazy'       => $categoriesLazy,
-        'listingsFromCategory' => $listingsFromCategory,
-        'tags'                 => $tags,
-    ]);
-});
-
-Route::get('/listings', [ListingController::class, 'index'])->name('listings.index');
-Route::get('/listings/{id}', [ListingController::class, 'details'])->whereNumber('id')->name('listings.details');
-Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
+Route::get('/auth-required', function () {
+    return view('auth.auth-required');
+})->name('auth.required');
 
 // ----------------------------------------------------
 // Authenticated Routes (Requires Login)
 // ----------------------------------------------------
 Route::middleware(['auth'])->group(function () {
+    
+    Route::get('/laborator', function () {
+        $categoryAccessor = new CategoryAccessor();
+        $listingAccessor  = new ListingAccessor();
+        
+        $categoriesEager = $categoryAccessor->getAll();
+        $categoriesLazy = Category::all();
+        $listingsFromCategory = $listingAccessor->getByCategoryId(1);
+        $tags = Tag::all();
+
+        return view('laborator', [
+            'categoriesEager'      => $categoriesEager,
+            'categoriesLazy'       => $categoriesLazy,
+            'listingsFromCategory' => $listingsFromCategory,
+            'tags'                 => $tags,
+        ]);
+    });
+
+    Route::get('/listings', [ListingController::class, 'index'])->name('listings.index');
+    Route::get('/listings/{id}', [ListingController::class, 'details'])->whereNumber('id')->name('listings.details');
+    Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
     
     Route::get('/dashboard', function () {
         if (auth()->user()?->role === 'admin') {
