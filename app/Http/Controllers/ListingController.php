@@ -24,7 +24,12 @@ class ListingController extends Controller
     {
          $listings = $this->listingAccessor->getAll();
         // ListingResource::collection realizează maparea automată a listei
-        return ListingResource::collection($listings);
+        if (request()->wantsJson()) {
+            return ListingResource::collection($listings);
+        }
+
+        $viewModels = $listings->map(fn($l) => new ListingViewModel($l));
+        return view('listings.index', ['listings' => $viewModels]);
     }
 
     public function details(int|string $id)
@@ -34,7 +39,11 @@ class ListingController extends Controller
             return response()->json(['message' => 'Entitatea nu a fost găsită.'], 404);
         }
         // new ListingResource mappează automat o singură entitate
-        return new ListingResource($listing);
+        if (request()->wantsJson()) {
+            return new ListingResource($listing);
+        }
+
+        return view('listings.details', ['listing' => new ListingViewModel($listing)]);
     }
 
     // --- OPERAȚIA CREATE ---
