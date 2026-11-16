@@ -20,15 +20,13 @@
                         {{ __('Anunțuri') }}
                     </x-nav-link>
 
-                    @if(Auth::user()?->role !== 'admin')
-                        <x-nav-link :href="route('listings.my')" :active="request()->routeIs('listings.my')">
-                            {{ __('Anunțurile mele') }}
-                        </x-nav-link>
+                    <x-nav-link :href="route('listings.my')" :active="request()->routeIs('listings.my')">
+                        {{ __('Anunțurile mele') }}
+                    </x-nav-link>
 
-                        <x-nav-link :href="route('listings.create')" :active="request()->routeIs('listings.create')" class="text-emerald-600 font-semibold">
-                            + {{ __('Publică Anunț') }}
-                        </x-nav-link>
-                    @endif
+                    <x-nav-link :href="route('listings.create')" :active="request()->routeIs('listings.create')" class="text-emerald-600 font-semibold">
+                        + {{ __('Publică Anunț') }}
+                    </x-nav-link>
 
                     @if(Auth::user()?->role === 'admin')
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')" class="text-indigo-600 font-semibold">
@@ -63,11 +61,9 @@
                             </x-dropdown-link>
                         @endif
 
-                        @if(Auth::user()?->role !== 'admin')
-                            <x-dropdown-link :href="route('listings.my')">
-                                📋 {{ __('Anunțurile mele') }}
-                            </x-dropdown-link>
-                        @endif
+                        <x-dropdown-link :href="route('listings.my')">
+                            📋 {{ __('Anunțurile mele') }}
+                        </x-dropdown-link>
 
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Profile') }}
@@ -110,15 +106,13 @@
                 {{ __('Anunțuri') }}
             </x-responsive-nav-link>
 
-            @if(Auth::user()?->role !== 'admin')
-                <x-responsive-nav-link :href="route('listings.my')" :active="request()->routeIs('listings.my')">
-                    {{ __('Anunțurile mele') }}
-                </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('listings.my')" :active="request()->routeIs('listings.my')">
+                {{ __('Anunțurile mele') }}
+            </x-responsive-nav-link>
 
-                <x-responsive-nav-link :href="route('listings.create')" :active="request()->routeIs('listings.create')" class="text-emerald-600 font-semibold">
-                    + {{ __('Publică Anunț') }}
-                </x-responsive-nav-link>
-            @endif
+            <x-responsive-nav-link :href="route('listings.create')" :active="request()->routeIs('listings.create')" class="text-emerald-600 font-semibold">
+                + {{ __('Publică Anunț') }}
+            </x-responsive-nav-link>
 
             @if(Auth::user()?->role === 'admin')
                 <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')" class="text-indigo-600 font-semibold bg-indigo-50/50">
@@ -153,3 +147,19 @@
         </div>
     </div>
 </nav>
+
+@if(Auth::user()?->role === 'admin' && !request()->routeIs('admin.*'))
+    <div class="bg-indigo-50 border-b border-indigo-200 text-indigo-800 text-xs sm:text-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
+                    Mod Previzualizare Utilizator
+                </span>
+                <span>Vizualizezi site-ul așa cum îl vede un utilizator normal.</span>
+            </div>
+            <a href="{{ route('admin.dashboard') }}" class="shrink-0 font-semibold text-indigo-700 hover:text-indigo-900 underline">
+                Înapoi la Admin Panel &rarr;
+            </a>
+        </div>
+    </div>
+@endif

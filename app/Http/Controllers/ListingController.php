@@ -99,6 +99,10 @@ class ListingController extends Controller
      */
     public function store(Request $request)
     {
+        if (auth()->user()?->role === 'admin') {
+            abort(403, 'Administratorii nu pot crea anunțuri.');
+        }
+
         $userId = auth()->id();
         $isFeatured = $request->boolean('is_featured');
 
