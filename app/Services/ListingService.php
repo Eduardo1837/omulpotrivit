@@ -47,6 +47,14 @@ class ListingService
     }
 
     /**
+     * Returnează numărul total de listări pentru panoul de administrare.
+     */
+    public function countAllListings(): int
+    {
+        return $this->listingAccessor->countAll();
+    }
+
+    /**
      * Returnează toate listările (inclusiv inactive) pentru panoul de administrare.
      */
     public function getAllListingsForAdmin(): Collection
