@@ -147,3 +147,19 @@
         </div>
     </div>
 </nav>
+
+@if(Auth::user()?->role === 'admin' && !request()->routeIs('admin.*'))
+    <div class="bg-indigo-50 border-b border-indigo-200 text-indigo-800 text-xs sm:text-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
+                    Mod Previzualizare Utilizator
+                </span>
+                <span>Vizualizezi site-ul așa cum îl vede un utilizator normal.</span>
+            </div>
+            <a href="{{ route('admin.dashboard') }}" class="shrink-0 font-semibold text-indigo-700 hover:text-indigo-900 underline">
+                Înapoi la Admin Panel &rarr;
+            </a>
+        </div>
+    </div>
+@endif

@@ -99,9 +99,15 @@
                         <a href="{{ route('listings.index') }}" class="text-sm font-semibold text-gray-600 hover:text-gray-900 transition">
                             Anulează
                         </a>
-                        <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm text-sm transition">
-                            Publică Anunțul
-                        </button>
+                        @if(auth()->user()?->role !== 'admin')
+                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm text-sm transition">
+                                Publică Anunțul
+                            </button>
+                        @else
+                            <span class="text-xs font-medium text-indigo-700 bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-200">
+                                Administratorii pot doar previzualiza acest formular.
+                            </span>
+                        @endif
                     </div>
                 </form>
             </div>

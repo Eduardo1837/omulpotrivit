@@ -61,6 +61,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/listings/create', [ListingController::class, 'create'])->name('listings.create');
     Route::post('/listings', [ListingController::class, 'store'])->name('listings.store');
     Route::get('/my-listings', [ListingController::class, 'myListings'])->name('listings.my');
+    Route::get('/my-listings/preview/{id}', [ListingController::class, 'previewMockupDetails'])->whereNumber('id')->name('listings.preview.details');
+    Route::get('/my-listings/preview/{id}/edit', [ListingController::class, 'previewMockupEdit'])->whereNumber('id')->name('listings.preview.edit');
     Route::get('/listings/{id}/edit', [ListingController::class, 'edit'])->name('listings.edit');
     Route::post('/listings/{id}/edit', [ListingController::class, 'update'])->name('listings.update');
 
@@ -78,6 +80,8 @@ Route::middleware(['auth'])->group(function () {
         
         // Manage Users
         Route::get('/users', [AdminController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [AdminController::class, 'createUser'])->name('users.create');
+        Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
         Route::get('/users/{id}/edit', [AdminController::class, 'edit'])->name('users.edit');
         Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('users.update');
         Route::delete('/users/{id}', [AdminController::class, 'destroyUser'])->name('users.destroy');
@@ -88,6 +92,14 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/listings/{id}', [AdminController::class, 'updateListing'])->name('listings.update');
         Route::patch('/listings/{id}/toggle-status', [AdminController::class, 'toggleListingStatus'])->name('listings.toggle-status');
         Route::delete('/listings/{id}', [AdminController::class, 'destroyListing'])->name('listings.destroy');
+
+        // Manage Categories
+        Route::get('/categories', [AdminController::class, 'categoriesIndex'])->name('categories.index');
+        Route::get('/categories/create', [AdminController::class, 'createCategory'])->name('categories.create');
+        Route::post('/categories', [AdminController::class, 'storeCategory'])->name('categories.store');
+        Route::get('/categories/{id}/edit', [AdminController::class, 'editCategory'])->name('categories.edit');
+        Route::put('/categories/{id}', [AdminController::class, 'updateCategory'])->name('categories.update');
+        Route::delete('/categories/{id}', [AdminController::class, 'destroyCategory'])->name('categories.destroy');
 
         // Manage Reviews for a Listing
         Route::get('/listings/{id}/reviews', [AdminController::class, 'listingReviews'])->name('listings.reviews');

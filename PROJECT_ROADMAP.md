@@ -50,13 +50,15 @@
 ### `app/`
 - **`app/Accessors/`** (Data Access Layer)
   - `CategoryAccessor.php` — Eager-loads and manages CRUD for `Category` (`getAll()`, `getAllWithActiveListings()`, `getById()`, `create()`, `update()`, `delete()`).
-  - `ListingAccessor.php` — Eager-loads and manages CRUD, active-only/featured-first queries, user listing queries, and logical deletion (`softDelete()` setting `status = 'inactiv'`).
+  - `ListingAccessor.php` — Eager-loads and manages CRUD, active-only/featured-first queries, `countAll()`, user listing queries, and logical deletion (`softDelete()` setting `status = 'inactiv'`).
   - `PromotionPlanAccessor.php` — Manages read/CRUD queries for `PromotionPlan`.
   - `ReviewAccessor.php` — Manages visible (`is_hidden = false`) review queries and logical hiding (`setHidden()`, `toggleHidden()`).
+  - `UserAccessor.php` — Manages `User` queries (`getAllWithListings()`, `getAll()`, `getById()`, `count()`) and CRUD.
 - **`app/Services/`** (Business Logic, Cache, Logging & Logical Deletion)
-  - `ListingService.php` — Injects `ListingAccessor` & `PromotionPlanAccessor`; caches home listings, active listings, and promotion plans (`Cache::remember` / `Cache::forget`); enforces free-plan quota (`canUserCreateListing`), promotion, logical deletion (`status = 'inactiv'`), and logging (`Log::info` / `Log::warning`).
+  - `ListingService.php` — Injects `ListingAccessor` & `PromotionPlanAccessor`; caches home listings, active listings, and promotion plans (`Cache::remember` / `Cache::forget`); enforces free-plan quota (`canUserCreateListing`), promotion, logical deletion (`status = 'inactiv'`), `countAllListings()`, and logging (`Log::info` / `Log::warning`).
   - `CategoryService.php` — Injects `CategoryAccessor`; caches categories and active-listing categories with invalidation and logging.
   - `ReviewService.php` — Injects `ReviewAccessor`; filters `is_hidden = true` from public queries and logs review creation/moderation/logical hiding.
+  - `UserService.php` — Injects `UserAccessor`; handles admin user creation (with password hashing), updates, self-deletion guard, and logging.
 - **`app/Http/Controllers/`**
   - `Controller.php` — Base abstract controller.
   - `AdminController.php` — Admin dashboard stats, user management, listing management, and review moderation (`toggleReviewVisibility`, `destroyReview`).
@@ -213,15 +215,23 @@ erDiagram
 
 | Method | URI | Route Name | Handler | View / Behavior |
 | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/admin` | `admin.dashboard` | `AdminController@dashboard` | Platform user & listing counts -> `admin/dashboard.blade.php` |
+| `GET` | `/admin` | `admin.dashboard` | `AdminController@dashboard` | Platform user & listing counts via `UserService` & `ListingService` -> `admin/dashboard.blade.php` |
 | `GET` | `/admin/users` | `admin.users.index` | `AdminController@index` | Lists users with eager-loaded `listings` -> `admin/users/index.blade.php` |
+| `GET` | `/admin/users/create` | `admin.users.create` | `AdminController@createUser` | User create form -> `admin/users/create.blade.php` |
+| `POST` | `/admin/users` | `admin.users.store` | `AdminController@storeUser` | Validates & creates user via `UserService` |
 | `GET` | `/admin/users/{id}/edit` | `admin.users.edit` | `AdminController@edit` | User edit form -> `admin/users/edit.blade.php` |
 | `PUT` | `/admin/users/{id}` | `admin.users.update` | `AdminController@updateUser` | Updates `name`, `email`, `role` (`admin\|user`), `city` |
-| `DELETE` | `/admin/users/{id}` | `admin.users.destroy` | `AdminController@destroyUser` | Blocks self-deletion; deletes user |
+| `DELETE` | `/admin/users/{id}` | `admin.users.destroy` | `AdminController@destroyUser` | Blocks self-deletion; deletes user via `UserService` |
 | `GET` | `/admin/listings` | `admin.listings.index` | `AdminController@listingsIndex` | Lists all listings (`category`, `provider`) -> `admin/listings/index.blade.php` |
-| `GET` | `/admin/listings/{id}/edit` | `admin.listings.edit` | `AdminController@editListing` | Listing moderation edit form -> `admin/listings/edit.blade.php` |
-| `PUT` | `/admin/listings/{id}` | `admin.listings.update` | `AdminController@updateListing` | Updates `title`, `status`, `is_featured` |
+| `GET` | `/admin/listings/{id}/edit` | `admin.listings.edit` | `AdminController@editListing` | Listing moderation edit form with `category_id` & `provider_id` dropdowns -> `admin/listings/edit.blade.php` |
+| `PUT` | `/admin/listings/{id}` | `admin.listings.update` | `AdminController@updateListing` | Updates `title`, `category_id`, `provider_id`, `status`, `is_featured` |
 | `DELETE` | `/admin/listings/{id}` | `admin.listings.destroy` | `AdminController@destroyListing` | Deletes listing |
+| `GET` | `/admin/categories` | `admin.categories.index` | `AdminController@categoriesIndex` | Lists categories with parent & listing counts -> `admin/categories/index.blade.php` |
+| `GET` | `/admin/categories/create` | `admin.categories.create` | `AdminController@createCategory` | Category create form -> `admin/categories/create.blade.php` |
+| `POST` | `/admin/categories` | `admin.categories.store` | `AdminController@storeCategory` | Validates & creates category via `CategoryService` |
+| `GET` | `/admin/categories/{id}/edit` | `admin.categories.edit` | `AdminController@editCategory` | Category edit form -> `admin/categories/edit.blade.php` |
+| `PUT` | `/admin/categories/{id}` | `admin.categories.update` | `AdminController@updateCategory` | Updates `name`, `description`, `parent_id` via `CategoryService` |
+| `DELETE` | `/admin/categories/{id}` | `admin.categories.destroy` | `AdminController@destroyCategory` | Deletes category (if no listings attached) via `CategoryService` |
 | `GET` | `/admin/listings/{id}/reviews` | `admin.listings.reviews` | `AdminController@listingReviews` | Lists reviews for listing -> `admin/listings/reviews.blade.php` |
 | `PATCH` | `/admin/reviews/{id}/toggle-visibility` | `admin.reviews.toggle` | `AdminController@toggleReviewVisibility` | Toggles `is_hidden` boolean |
 | `DELETE` | `/admin/reviews/{id}` | `admin.reviews.destroy` | `AdminController@destroyReview` | Deletes review |
@@ -311,8 +321,9 @@ Transforms a `Listing` model into a localized Romanian JSON payload:
 | `reviews/create.blade.php` | **Standalone HTML + inline `<style>`** | `ReviewController@create` |
 | `laborator.blade.php` | **Standalone HTML + inline `<style>`** | `GET /laborator` |
 | `admin/dashboard.blade.php` | `<x-app-layout>` + `<x-admin-nav>` | `AdminController@dashboard` |
-| `admin/users/index.blade.php`, `admin/users/edit.blade.php` | `<x-app-layout>` + `<x-admin-nav>` | `AdminController@index`, `edit` |
+| `admin/users/index.blade.php`, `admin/users/create.blade.php`, `admin/users/edit.blade.php` | `<x-app-layout>` + `<x-admin-nav>` | `AdminController@index`, `createUser`, `edit` |
 | `admin/listings/index.blade.php`, `admin/listings/edit.blade.php`, `admin/listings/reviews.blade.php` | `<x-app-layout>` + `<x-admin-nav>` | `AdminController@listingsIndex`, `editListing`, `listingReviews` |
+| `admin/categories/index.blade.php`, `admin/categories/create.blade.php`, `admin/categories/edit.blade.php` | `<x-app-layout>` + `<x-admin-nav>` | `AdminController@categoriesIndex`, `createCategory`, `editCategory` |
 | `dashboard.blade.php` | `<x-app-layout>` (Tailwind) | *Currently unused* (`GET /dashboard` redirects to `admin.dashboard` or `home`) |
 
 ---

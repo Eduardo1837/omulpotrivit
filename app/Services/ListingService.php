@@ -6,6 +6,7 @@ use App\Accessors\ListingAccessor;
 use App\Accessors\PromotionPlanAccessor;
 use App\Models\Listing;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -47,6 +48,14 @@ class ListingService
     }
 
     /**
+     * Returnează numărul total de listări pentru panoul de administrare.
+     */
+    public function countAllListings(): int
+    {
+        return $this->listingAccessor->countAll();
+    }
+
+    /**
      * Returnează toate listările (inclusiv inactive) pentru panoul de administrare.
      */
     public function getAllListingsForAdmin(): Collection
@@ -84,6 +93,58 @@ class ListingService
     public function getUserListings(int|string $userId, bool $activeOnly = true): Collection
     {
         return $this->listingAccessor->getByUserId($userId, $activeOnly);
+    }
+
+    /**
+     * Returnează date mockup (nepersisate) pentru previzualizarea secțiunii „Anunțurile Mele” de către admin.
+     */
+    public function getAdminPreviewMockupListings(): SupportCollection
+    {
+        $featured = new Listing([
+            'category_id' => 1,
+            'title' => 'Exemplu Anunț Promovat — Dezvoltare Web & Aplicații',
+            'description' => 'Serviciu complet de dezvoltare aplicații web Laravel, API REST și interfețe moderne Tailwind CSS. Exemplu mockup pentru previzualizarea panoului de utilizator.',
+            'city' => 'Suceava',
+            'price' => 350,
+            'priceType' => 'fix',
+            'status' => 'activ',
+            'is_featured' => true,
+            'views_count' => 148,
+        ]);
+        $featured->id = 1;
+        $featured->created_at = now()->subDays(5);
+        $featured->setRelation('category', (object) ['id' => 1, 'name' => 'IT & Programare']);
+        $featured->setRelation('reviews', collect([
+            (object) ['id' => 1, 'author_id' => 0, 'rating' => 5, 'comment' => 'Serviciu excelent, livrare rapidă!', 'created_at' => now()->subDays(2), 'author' => (object) ['name' => 'Client Demo 1']],
+            (object) ['id' => 2, 'author_id' => 0, 'rating' => 4, 'comment' => 'Comunicare foarte bună și cod curat.', 'created_at' => now()->subDay(), 'author' => (object) ['name' => 'Client Demo 2']],
+        ]));
+
+        $free = new Listing([
+            'category_id' => 2,
+            'title' => 'Exemplu Anunț Gratuit — Instalații & Reparații',
+            'description' => 'Intervenții rapide pentru instalații sanitare și reparații casnice. Exemplu mockup pentru planul gratuit.',
+            'city' => 'Iași',
+            'price' => 120,
+            'priceType' => 'pe ora',
+            'status' => 'activ',
+            'is_featured' => false,
+            'views_count' => 24,
+        ]);
+        $free->id = 2;
+        $free->created_at = now()->subDays(12);
+        $free->setRelation('category', (object) ['id' => 2, 'name' => 'Casă & Grădină']);
+        $free->setRelation('reviews', collect());
+
+        return collect([$featured, $free]);
+    }
+
+    /**
+     * Găsește un anunț mockup după ID pentru previzualizarea de către admin.
+     */
+    public function getAdminPreviewMockupListingById(int|string $id): ?Listing
+    {
+        return $this->getAdminPreviewMockupListings()
+            ->first(fn (Listing $item) => (int) $item->id === (int) $id);
     }
 
     /**

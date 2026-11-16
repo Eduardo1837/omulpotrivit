@@ -6,9 +6,11 @@
     </x-slot>
 
     <div class="py-10">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <!-- Quick Sub-Navigation Between Sections -->
             <x-admin-nav :breadcrumbs="['Utilizatori' => route('admin.users.index'), 'Editare' => null]" />
+
+            <div class="max-w-4xl">
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-xl border border-gray-200/80 p-6">
                 <form action="{{ route('admin.users.update', $user->id) }}" method="POST">
@@ -47,6 +49,7 @@
                         </a>
                     </div>
                 </form>
+            </div>
             </div>
         </div>
     </div>

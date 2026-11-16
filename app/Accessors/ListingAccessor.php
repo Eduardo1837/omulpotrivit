@@ -173,6 +173,14 @@ class ListingAccessor
     }
 
     /**
+     * Returnează numărul total de listări.
+     */
+    public function countAll(): int
+    {
+        return Listing::count();
+    }
+
+    /**
      * Salvare entitate nouă (echivalent AddEntity din cerință)
      */
     public function addEntity(array $data): Listing
