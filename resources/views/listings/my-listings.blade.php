@@ -229,6 +229,33 @@
         </div>
     </div>
 
+    <!-- Upgrade / Promotion Limit Reached Modal -->
+    <div id="upgradeLimitModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-200">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900">Limită de Promovare Atinsă</h3>
+            </div>
+            <p id="upgradeLimitMessage" class="text-sm text-gray-600 mb-5"></p>
+            <div class="flex justify-end gap-2">
+                <button type="button"
+                        onclick="closeUpgradeModal()"
+                        class="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                    Închide
+                </button>
+                <button type="button"
+                        onclick="upgradeToNextPlan()"
+                        class="px-4 py-2 text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition">
+                    Fă Upgrade la un Plan Superior
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Jira-style Permanent Delete Confirmation Modal -->
     <div id="deleteListingModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
         <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-200">
@@ -367,6 +394,10 @@
 
                 const data = await response.json();
                 if (!response.ok) {
+                    if (data.limit_reached) {
+                        openUpgradeModal(data);
+                        return;
+                    }
                     showApiFeedback(data.message || 'Promovarea a eșuat.', true);
                     return;
                 }
@@ -416,6 +447,39 @@
                 showApiFeedback(data.message || 'Statusul a fost actualizat.');
             } catch (error) {
                 showApiFeedback('Eroare de rețea la actualizarea statusului.', true);
+            }
+        }
+
+        function openUpgradeModal(data) {
+            const msgEl = document.getElementById('upgradeLimitMessage');
+            if (msgEl) {
+                msgEl.textContent = data.message || 'Ai atins limita de anunțuri promovate pentru planul curent. Fă upgrade la un plan superior pentru a promova mai multe anunțuri.';
+            }
+            document.getElementById('upgradeLimitModal').classList.remove('hidden');
+        }
+
+        function closeUpgradeModal() {
+            document.getElementById('upgradeLimitModal').classList.add('hidden');
+        }
+
+        function upgradeToNextPlan() {
+            closeUpgradeModal();
+            const currentPlan = loadedPlans.find(p => p.id === selectedPlanId);
+            const currentMax = currentPlan?.maxItems ?? 0;
+            const higherPlan = loadedPlans.find(p =>
+                Number(p.price) > 0 &&
+                p.id !== selectedPlanId &&
+                (p.maxItems === null || Number(p.maxItems) > Number(currentMax))
+            );
+
+            if (higherPlan) {
+                selectPlan(higherPlan.id);
+                showApiFeedback(`Planul „${higherPlan.name}” a fost selectat pentru upgrade. Apasă din nou „★ Promovează Anunțul” pe anunțul dorit.`);
+            }
+
+            const plansGrid = document.getElementById('plans-grid');
+            if (plansGrid) {
+                plansGrid.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
 

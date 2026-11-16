@@ -144,6 +144,17 @@ class ListingController extends Controller
             'plan_id' => 'nullable|integer|exists:promotion_plans,id',
         ]);
 
+        $limitInfo = $this->listingService->checkPromotionPlanLimit($userId, $id, $validated['plan_id'] ?? null);
+        if ($limitInfo !== null) {
+            return response()->json([
+                'limit_reached' => true,
+                'plan_name' => $limitInfo['plan_name'],
+                'max_items' => $limitInfo['max_items'],
+                'current_count' => $limitInfo['current_count'],
+                'message' => "Ai atins limita de {$limitInfo['max_items']} anunț(uri) promovate pentru planul {$limitInfo['plan_name']}. Pentru a promova mai multe anunțuri, trebuie să faci upgrade la un plan superior.",
+            ], 422);
+        }
+
         $promoted = $this->listingService->promoteListing($id, $userId, $validated['plan_id'] ?? null);
         if (!$promoted) {
             return response()->json(['message' => 'Anunțul nu poate fi promovat cu planul selectat.'], 422);

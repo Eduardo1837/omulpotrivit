@@ -146,4 +146,67 @@ class UserPlansApiTest extends TestCase
             ->assertSee('Planuri de Promovare Disponibile')
             ->assertSee('/api/plans');
     }
+
+    public function test_promotion_is_blocked_when_plan_max_items_limit_is_reached(): void
+    {
+        $owner = User::factory()->create(['role' => 'user']);
+        $category = Category::create(['name' => 'IT', 'description' => 'IT services']);
+
+        $alreadyPromoted = Listing::create([
+            'provider_id' => $owner->id,
+            'category_id' => $category->id,
+            'title' => 'Anunț Promovat 1',
+            'description' => 'Descriere',
+            'price' => 100,
+            'priceType' => 'fix',
+            'city' => 'Suceava',
+            'status' => 'activ',
+            'is_featured' => true,
+        ]);
+
+        $secondListing = Listing::create([
+            'provider_id' => $owner->id,
+            'category_id' => $category->id,
+            'title' => 'Anunț Nepromovat 2',
+            'description' => 'Descriere',
+            'price' => 120,
+            'priceType' => 'fix',
+            'city' => 'Suceava',
+            'status' => 'activ',
+            'is_featured' => false,
+        ]);
+
+        $limitedPlan = PromotionPlan::create([
+            'name' => 'Starter 1',
+            'price' => 15,
+            'currency' => 'RON',
+            'durationDays' => 7,
+            'maxItems' => 1,
+        ]);
+
+        $unlimitedPlan = PromotionPlan::create([
+            'name' => 'Business 30 Days',
+            'price' => 79,
+            'currency' => 'RON',
+            'durationDays' => 30,
+            'maxItems' => null,
+        ]);
+
+        // Blocked because user already has 1 promoted listing and Starter 1 allows maxItems = 1
+        $this->actingAs($owner)
+            ->postJson("/api/listings/{$secondListing->id}/promote", ['plan_id' => $limitedPlan->id])
+            ->assertStatus(422)
+            ->assertJson([
+                'limit_reached' => true,
+                'plan_name' => 'Starter 1',
+                'max_items' => 1,
+                'current_count' => 1,
+            ]);
+
+        // Succeeds after upgrading to unlimited plan
+        $this->actingAs($owner)
+            ->postJson("/api/listings/{$secondListing->id}/promote", ['plan_id' => $unlimitedPlan->id])
+            ->assertStatus(200)
+            ->assertJsonPath('listing.este_promovat', true);
+    }
 }

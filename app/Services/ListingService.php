@@ -234,7 +234,47 @@ class ListingService
     }
 
     /**
-     * Promovează o listare a utilizatorului (activează is_featured = true).
+     * Verifică dacă utilizatorul a atins limita de anunțuri promovate pentru planul selectat.
+     * Returnează detalii despre limită dacă este atinsă, sau null dacă promovarea este permisă.
+     */
+    public function checkPromotionPlanLimit(int $userId, int|string $listingId, ?int $planId = null): ?array
+    {
+        if (!$planId) {
+            return null;
+        }
+
+        $plan = $this->promotionPlanAccessor->getById($planId);
+        if (!$plan || (float) $plan->price <= 0 || $plan->maxItems === null) {
+            return null;
+        }
+
+        $listing = $this->listingAccessor->getById($listingId);
+        if ($listing && $listing->is_featured) {
+            return null;
+        }
+
+        $currentPromotedCount = $this->listingAccessor->countFeaturedByUserId($userId, activeOnly: true);
+        if ($currentPromotedCount >= (int) $plan->maxItems) {
+            Log::warning('Listing promotion blocked by plan maxItems limit', [
+                'listing_id' => $listingId,
+                'user_id' => $userId,
+                'plan_id' => $plan->id,
+                'max_items' => $plan->maxItems,
+                'current_promoted_count' => $currentPromotedCount,
+            ]);
+
+            return [
+                'plan_name' => $plan->name,
+                'max_items' => (int) $plan->maxItems,
+                'current_count' => $currentPromotedCount,
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Promovează o listare a utilizatorului (activează is_featured = true sau false pentru plan gratuit).
      */
     public function promoteListing(int|string $listingId, int $userId, ?int $planId = null): bool
     {
@@ -245,6 +285,10 @@ class ListingService
                 'listing_id' => $listingId,
                 'user_id' => $userId,
             ]);
+            return false;
+        }
+
+        if ($this->checkPromotionPlanLimit($userId, $listingId, $planId) !== null) {
             return false;
         }
 
