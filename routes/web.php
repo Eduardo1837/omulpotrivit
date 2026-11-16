@@ -78,12 +78,16 @@ Route::middleware(['auth'])->group(function () {
         
         // Manage Users
         Route::get('/users', [AdminController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [AdminController::class, 'createUser'])->name('users.create');
+        Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
         Route::get('/users/{id}/edit', [AdminController::class, 'edit'])->name('users.edit');
         Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('users.update');
         Route::delete('/users/{id}', [AdminController::class, 'destroyUser'])->name('users.destroy');
         
         // Manage Listings
         Route::get('/listings', [AdminController::class, 'listingsIndex'])->name('listings.index');
+        Route::get('/listings/create', [AdminController::class, 'createListing'])->name('listings.create');
+        Route::post('/listings', [AdminController::class, 'storeListing'])->name('listings.store');
         Route::get('/listings/{id}/edit', [AdminController::class, 'editListing'])->name('listings.edit');
         Route::put('/listings/{id}', [AdminController::class, 'updateListing'])->name('listings.update');
         Route::patch('/listings/{id}/toggle-status', [AdminController::class, 'toggleListingStatus'])->name('listings.toggle-status');

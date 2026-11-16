@@ -2,69 +2,103 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Listing;
-use App\Models\User;
+use App\Services\CategoryService;
 use App\Services\ListingService;
 use App\Services\ReviewService;
+use App\Services\UserService;
 use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
     public function __construct(
         protected ListingService $listingService,
-        protected ReviewService $reviewService
+        protected ReviewService $reviewService,
+        protected UserService $userService,
+        protected CategoryService $categoryService
     ) {
     }
 
     public function dashboard()
     {
-        // Get some basic stats for the dashboard
         $stats = [
-            'users' => User::count(),
-            'listings' => Listing::count(),
+            'users' => $this->userService->countUsers(),
+            'listings' => $this->listingService->countAllListings(),
         ];
 
         return view('admin.dashboard', compact('stats'));
     }
 
+    // --- USER MANAGEMENT ---
+
     public function index()
     {
-        // Eager load listings so $user->listings->count() is efficient
-        $users = User::with('listings')->get(); 
-        
+        $users = $this->userService->getAllUsersWithListings();
+
         return view('admin.users.index', compact('users'));
     }
 
-    public function edit($id)
+    public function createUser()
     {
-        $user = User::findOrFail($id);
-        return view('admin.users.edit', compact('user')); 
+        return view('admin.users.create');
     }
 
-    public function updateUser(Request $request, $id)
+    public function storeUser(Request $request)
     {
-        $user = User::findOrFail($id);
-        
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,'.$id,
+            'email' => 'required|email|max:255|unique:users,email',
+            'password' => 'required|string|min:8',
             'role' => 'required|in:admin,user',
             'city' => 'nullable|string|max:255',
         ]);
 
-        $user->update($request->only('name', 'email', 'role', 'city'));
+        $this->userService->createUser($validated, auth()->id());
+
+        return redirect()->route('admin.users.index')->with('success', 'User created successfully.');
+    }
+
+    public function edit($id)
+    {
+        $user = $this->userService->getUserById($id);
+        if (!$user) {
+            abort(404);
+        }
+
+        return view('admin.users.edit', compact('user'));
+    }
+
+    public function updateUser(Request $request, $id)
+    {
+        $user = $this->userService->getUserById($id);
+        if (!$user) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $id,
+            'role' => 'required|in:admin,user',
+            'city' => 'nullable|string|max:255',
+        ]);
+
+        $this->userService->updateUser($id, $validated, auth()->id());
 
         return redirect()->route('admin.users.index')->with('success', 'User updated successfully.');
     }
 
     public function destroyUser($id)
     {
-        $user = User::findOrFail($id);
-        if ($user->id === auth()->id()) {
+        $user = $this->userService->getUserById($id);
+        if (!$user) {
+            abort(404);
+        }
+
+        if ((int) $user->id === auth()->id()) {
             return redirect()->route('admin.users.index')->with('error', 'You cannot delete yourself.');
         }
-        $user->delete();
+
+        $this->userService->deleteUser($id, auth()->id());
+
         return redirect()->route('admin.users.index')->with('success', 'User deleted successfully.');
     }
 
@@ -73,7 +107,39 @@ class AdminController extends Controller
     public function listingsIndex()
     {
         $listings = $this->listingService->getAllListingsForAdmin();
+
         return view('admin.listings.index', compact('listings'));
+    }
+
+    public function createListing()
+    {
+        $categories = $this->categoryService->getAllCategories();
+        $users = $this->userService->getAllUsers();
+
+        return view('admin.listings.create', compact('categories', 'users'));
+    }
+
+    public function storeListing(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'price' => 'required|numeric|min:0',
+            'priceType' => 'required|string|max:50',
+            'city' => 'required|string|max:100',
+            'category_id' => 'required|exists:categories,id',
+            'provider_id' => 'required|exists:users,id',
+            'status' => 'required|in:activ,inactiv',
+            'is_featured' => 'boolean',
+        ]);
+
+        $providerId = (int) $validated['provider_id'];
+        unset($validated['provider_id']);
+        $validated['is_featured'] = $request->boolean('is_featured');
+
+        $this->listingService->createListing($validated, $providerId);
+
+        return redirect()->route('admin.listings.index')->with('success', 'Listing created successfully.');
     }
 
     public function editListing($id)
@@ -83,7 +149,10 @@ class AdminController extends Controller
             abort(404);
         }
 
-        return view('admin.listings.edit', compact('listing'));
+        $categories = $this->categoryService->getAllCategories();
+        $users = $this->userService->getAllUsers();
+
+        return view('admin.listings.edit', compact('listing', 'categories', 'users'));
     }
 
     public function updateListing(Request $request, $id)
@@ -93,16 +162,20 @@ class AdminController extends Controller
             abort(404);
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'status' => 'required|string',
+            'category_id' => 'required|exists:categories,id',
+            'provider_id' => 'required|exists:users,id',
+            'status' => 'required|in:activ,inactiv',
             'is_featured' => 'boolean',
         ]);
 
         $this->listingService->updateListing($id, [
-            'title' => $request->title,
-            'status' => $request->status,
-            'is_featured' => $request->has('is_featured'),
+            'title' => $validated['title'],
+            'category_id' => (int) $validated['category_id'],
+            'provider_id' => (int) $validated['provider_id'],
+            'status' => $validated['status'],
+            'is_featured' => $request->boolean('is_featured'),
         ], auth()->id());
 
         return redirect()->route('admin.listings.index')->with('success', 'Listing updated successfully.');
@@ -116,6 +189,7 @@ class AdminController extends Controller
         }
 
         $label = $listing->status === 'activ' ? 'activated' : 'deactivated';
+
         return redirect()->route('admin.listings.index')->with('success', "Listing {$label} successfully.");
     }
 
@@ -154,6 +228,7 @@ class AdminController extends Controller
         }
 
         $status = $review->is_hidden ? 'hidden' : 'visible';
+
         return back()->with('success', "Review is now {$status}.");
     }
 
