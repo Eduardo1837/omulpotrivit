@@ -66,6 +66,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/reviews/create', [ReviewController::class, 'create'])->name('reviews.create');
     Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::put('/reviews/{id}', [ReviewController::class, 'update'])->name('reviews.update');
+    Route::delete('/reviews/{id}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
 
     // ----------------------------------------------------
     // Admin Routes

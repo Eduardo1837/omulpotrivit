@@ -51,6 +51,59 @@ class ReviewService
     }
 
     /**
+     * Actualizează o recenzie dacă aparține utilizatorului curent.
+     */
+    public function updateReview(int|string $id, array $data, int $actingUserId): ?Review
+    {
+        $review = $this->reviewAccessor->getById($id);
+
+        if (!$review || (int) $review->author_id !== $actingUserId) {
+            Log::warning('Unauthorized or missing review update attempt', [
+                'review_id' => $id,
+                'acting_user_id' => $actingUserId,
+            ]);
+            return null;
+        }
+
+        $this->reviewAccessor->update($id, $data);
+
+        Log::info('Review updated by author', [
+            'review_id' => $id,
+            'listing_id' => $review->listing_id,
+            'author_id' => $actingUserId,
+        ]);
+
+        return $this->reviewAccessor->getById($id);
+    }
+
+    /**
+     * Șterge recenzia proprie a utilizatorului curent.
+     */
+    public function deleteOwnReview(int|string $id, int $actingUserId): ?int
+    {
+        $review = $this->reviewAccessor->getById($id);
+
+        if (!$review || (int) $review->author_id !== $actingUserId) {
+            Log::warning('Unauthorized or missing review delete attempt', [
+                'review_id' => $id,
+                'acting_user_id' => $actingUserId,
+            ]);
+            return null;
+        }
+
+        $listingId = (int) $review->listing_id;
+        $this->reviewAccessor->delete($id);
+
+        Log::info('Review deleted by author', [
+            'review_id' => $id,
+            'listing_id' => $listingId,
+            'author_id' => $actingUserId,
+        ]);
+
+        return $listingId;
+    }
+
+    /**
      * Comută vizibilitatea (is_hidden) unei recenzii.
      */
     public function toggleVisibility(int|string $id, ?int $actingUserId = null): ?Review

@@ -53,6 +53,15 @@ class ReviewAccessor
     }
 
     /**
+     * Actualizează o recenzie existentă.
+     */
+    public function update(int|string $id, array $data): bool
+    {
+        $review = Review::find($id);
+        return $review ? $review->update($data) : false;
+    }
+
+    /**
      * Setează starea de ascundere logică (is_hidden) pentru o recenzie.
      */
     public function setHidden(int|string $id, bool $hidden): bool
