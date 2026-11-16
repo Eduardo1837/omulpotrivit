@@ -62,13 +62,24 @@
                                         <a href="{{ route('admin.listings.edit', $listing->id) }}" class="bg-amber-500 hover:bg-amber-600 text-white py-1 px-2.5 rounded text-xs font-semibold transition">
                                             Editare
                                         </a>
-                                        <form action="{{ route('admin.listings.destroy', $listing->id) }}" method="POST" onsubmit="return confirm('Sigur doriți să ștergeți acest anunț?');">
+                                        <form action="{{ route('admin.listings.toggle-status', $listing->id) }}" method="POST">
                                             @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white py-1 px-2.5 rounded text-xs font-semibold transition">
-                                                Șterge
-                                            </button>
+                                            @method('PATCH')
+                                            @if($listing->status === 'activ')
+                                                <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white py-1 px-2.5 rounded text-xs font-semibold transition">
+                                                    Deactivate
+                                                </button>
+                                            @else
+                                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white py-1 px-2.5 rounded text-xs font-semibold transition">
+                                                    Activate
+                                                </button>
+                                            @endif
                                         </form>
+                                        <button type="button"
+                                                onclick="openDeleteModal('{{ route('admin.listings.destroy', $listing->id) }}', '{{ addslashes($listing->title) }}')"
+                                                class="bg-rose-600 hover:bg-rose-700 text-white py-1 px-2.5 rounded text-xs font-semibold transition">
+                                            Delete
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -82,4 +93,54 @@
             </div>
         </div>
     </div>
+
+    <!-- Jira-style Permanent Delete Confirmation Modal -->
+    <div id="deleteListingModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-200">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Confirm Permanent Deletion</h3>
+            <p class="text-sm text-gray-600 mb-4">
+                You are about to permanently delete <span id="deleteListingTitle" class="font-semibold text-gray-900"></span>.
+                This action cannot be undone. Type <code class="px-1.5 py-0.5 bg-gray-100 text-rose-600 rounded font-bold">delete</code> to confirm.
+            </p>
+            <form id="deleteListingForm" method="POST" action="">
+                @csrf
+                @method('DELETE')
+                <input type="text"
+                       id="confirmDeleteInput"
+                       name="confirm_delete"
+                       autocomplete="off"
+                       placeholder="Type delete"
+                       oninput="document.getElementById('confirmDeleteSubmit').disabled = this.value.trim() !== 'delete';"
+                       class="w-full border-gray-300 rounded-lg shadow-sm focus:border-rose-500 focus:ring-rose-500 text-sm mb-4">
+                <div class="flex justify-end gap-2">
+                    <button type="button"
+                            onclick="closeDeleteModal()"
+                            class="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            id="confirmDeleteSubmit"
+                            disabled
+                            class="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition">
+                        Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openDeleteModal(actionUrl, title) {
+            document.getElementById('deleteListingForm').action = actionUrl;
+            document.getElementById('deleteListingTitle').textContent = title;
+            const input = document.getElementById('confirmDeleteInput');
+            input.value = '';
+            document.getElementById('confirmDeleteSubmit').disabled = true;
+            document.getElementById('deleteListingModal').classList.remove('hidden');
+            input.focus();
+        }
+        function closeDeleteModal() {
+            document.getElementById('deleteListingModal').classList.add('hidden');
+        }
+    </script>
 </x-app-layout>

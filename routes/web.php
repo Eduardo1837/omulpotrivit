@@ -84,6 +84,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/listings', [AdminController::class, 'listingsIndex'])->name('listings.index');
         Route::get('/listings/{id}/edit', [AdminController::class, 'editListing'])->name('listings.edit');
         Route::put('/listings/{id}', [AdminController::class, 'updateListing'])->name('listings.update');
+        Route::patch('/listings/{id}/toggle-status', [AdminController::class, 'toggleListingStatus'])->name('listings.toggle-status');
         Route::delete('/listings/{id}', [AdminController::class, 'destroyListing'])->name('listings.destroy');
 
         // Manage Reviews for a Listing

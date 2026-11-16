@@ -206,6 +206,29 @@ class ListingService
     }
 
     /**
+     * Comută statusul unei listări între 'activ' și 'inactiv' (ștergere/reactivare logică).
+     */
+    public function toggleListingStatus(int|string $id, ?int $actingUserId = null): ?Listing
+    {
+        $listing = $this->listingAccessor->getById($id);
+        if (!$listing) {
+            return null;
+        }
+
+        $newStatus = $listing->status === 'activ' ? 'inactiv' : 'activ';
+        $this->listingAccessor->update($id, ['status' => $newStatus]);
+        $this->invalidateListingsCache();
+
+        Log::info('Listing status toggled', [
+            'listing_id' => $id,
+            'status' => $newStatus,
+            'acting_user_id' => $actingUserId,
+        ]);
+
+        return $this->listingAccessor->getById($id);
+    }
+
+    /**
      * Ștergere logică a unei listări (status = 'inactiv'), invalidare cache și logging.
      */
     public function deleteListing(int|string $id, ?int $actingUserId = null): bool
@@ -220,6 +243,24 @@ class ListingService
             ]);
         } else {
             Log::warning('Listing logical deletion failed: listing not found', [
+                'listing_id' => $id,
+                'acting_user_id' => $actingUserId,
+            ]);
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Ștergere permanentă (fizică) a unei listări din baza de date.
+     */
+    public function forceDeleteListing(int|string $id, ?int $actingUserId = null): bool
+    {
+        $deleted = $this->listingAccessor->delete($id);
+
+        if ($deleted) {
+            $this->invalidateListingsCache();
+            Log::warning('Listing permanently deleted', [
                 'listing_id' => $id,
                 'acting_user_id' => $actingUserId,
             ]);

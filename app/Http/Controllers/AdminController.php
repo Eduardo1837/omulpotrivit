@@ -108,14 +108,30 @@ class AdminController extends Controller
         return redirect()->route('admin.listings.index')->with('success', 'Listing updated successfully.');
     }
 
-    public function destroyListing($id)
+    public function toggleListingStatus($id)
     {
-        $deleted = $this->listingService->deleteListing($id, auth()->id());
+        $listing = $this->listingService->toggleListingStatus($id, auth()->id());
+        if (!$listing) {
+            abort(404);
+        }
+
+        $label = $listing->status === 'activ' ? 'activated' : 'deactivated';
+        return redirect()->route('admin.listings.index')->with('success', "Listing {$label} successfully.");
+    }
+
+    public function destroyListing(Request $request, $id)
+    {
+        if (trim((string) $request->input('confirm_delete')) !== 'delete') {
+            return redirect()->route('admin.listings.index')
+                ->with('error', 'Type "delete" to confirm permanent deletion.');
+        }
+
+        $deleted = $this->listingService->forceDeleteListing($id, auth()->id());
         if (!$deleted) {
             abort(404);
         }
 
-        return redirect()->route('admin.listings.index')->with('success', 'Listing deactivated successfully.');
+        return redirect()->route('admin.listings.index')->with('success', 'Listing permanently deleted.');
     }
 
     public function listingReviews($id)
