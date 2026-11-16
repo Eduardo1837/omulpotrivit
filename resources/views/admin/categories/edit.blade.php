@@ -6,8 +6,10 @@
     </x-slot>
 
     <div class="py-10">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <x-admin-nav :breadcrumbs="['Categorii' => route('admin.categories.index'), 'Editare' => null]" />
+
+            <div class="max-w-4xl">
 
             @if ($errors->any())
                 <div class="mb-6 bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -55,6 +57,7 @@
                         </a>
                     </div>
                 </form>
+            </div>
             </div>
         </div>
     </div>
