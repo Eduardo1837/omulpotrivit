@@ -14,7 +14,8 @@
   - **Database:** SQLite (`database/database.sqlite` configured in `.env.example`) or MySQL (`omulpotrivit_db` documented in `PASI_GENERARE_MODELE_ORM.md`)
   - **Testing & Tooling:** PHPUnit `^11.5.50`, Mockery `^1.6`, Laravel Pint `^1.24`, Laravel Pail `^1.2.2`, Laravel Sail `^1.41`
 - **Architectural Pattern:** Multi-layered Laravel MVC extended with:
-  - **Data Access Layer (Accessors):** `app/Accessors/` (`CategoryAccessor`, `ListingAccessor`) encapsulating Eloquent queries and CRUD operations.
+  - **Services Layer:** `app/Services/` (`ListingService`, `CategoryService`, `ReviewService`) handling business logic, quota enforcement, `Cache::remember`/`Cache::forget`, `Log::info`/`Log::warning`, and logical deletion.
+  - **Data Access Layer (Accessors):** `app/Accessors/` (`CategoryAccessor`, `ListingAccessor`, `PromotionPlanAccessor`, `ReviewAccessor`) encapsulating Eloquent queries and CRUD/logical delete operations.
   - **ViewModels:** `app/ViewModels/ListingViewModel.php` formatting `Listing` models for Blade presentation.
   - **API Resources (DTO Mappers):** `app/Http/Resources/ListingResource.php` transforming `Listing` models into Romanian-keyed JSON payloads.
 
@@ -48,8 +49,14 @@
 
 ### `app/`
 - **`app/Accessors/`** (Data Access Layer)
-  - `CategoryAccessor.php` — Eager-loads and manages CRUD for `Category` (`with('listings')`).
-  - `ListingAccessor.php` — Eager-loads and manages CRUD and category filtering for `Listing` (`with('category')`).
+  - `CategoryAccessor.php` — Eager-loads and manages CRUD for `Category` (`getAll()`, `getAllWithActiveListings()`, `getById()`, `create()`, `update()`, `delete()`).
+  - `ListingAccessor.php` — Eager-loads and manages CRUD, active-only/featured-first queries, user listing queries, and logical deletion (`softDelete()` setting `status = 'inactiv'`).
+  - `PromotionPlanAccessor.php` — Manages read/CRUD queries for `PromotionPlan`.
+  - `ReviewAccessor.php` — Manages visible (`is_hidden = false`) review queries and logical hiding (`setHidden()`, `toggleHidden()`).
+- **`app/Services/`** (Business Logic, Cache, Logging & Logical Deletion)
+  - `ListingService.php` — Injects `ListingAccessor` & `PromotionPlanAccessor`; caches home listings, active listings, and promotion plans (`Cache::remember` / `Cache::forget`); enforces free-plan quota (`canUserCreateListing`), promotion, logical deletion (`status = 'inactiv'`), and logging (`Log::info` / `Log::warning`).
+  - `CategoryService.php` — Injects `CategoryAccessor`; caches categories and active-listing categories with invalidation and logging.
+  - `ReviewService.php` — Injects `ReviewAccessor`; filters `is_hidden = true` from public queries and logs review creation/moderation/logical hiding.
 - **`app/Http/Controllers/`**
   - `Controller.php` — Base abstract controller.
   - `AdminController.php` — Admin dashboard stats, user management, listing management, and review moderation (`toggleReviewVisibility`, `destroyReview`).
@@ -179,7 +186,7 @@ erDiagram
 
 | Method | URI | Route Name | Handler / Target | View / Behavior |
 | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/` | `home` | Closure | Loads latest 6 `Listing::with('category')` wrapped in `ListingViewModel` + `Category::all()` -> `welcome.blade.php` |
+| `GET` | `/` | `home` | `ListingController@home` | Delegates to `ListingService` & `CategoryService` (cached active/featured listings + active categories) -> `welcome.blade.php` |
 | `GET` | `/auth-required` | `auth.required` | Closure | Renders `auth/auth-required.blade.php` |
 
 ### 5.2 Authenticated Web Routes (`middleware(['auth'])` in `routes/web.php`)
@@ -342,12 +349,10 @@ npm run build
 
 ## 9. Known Quirks, Pitfalls & Future Roadmap for AI Agents
 
-1. **Hardcoded `author_id` in `ReviewController@store`:**
-   - Line 38 of `app/Http/Controllers/ReviewController.php` sets `$validated['author_id'] = 1;` with a comment to replace with `auth()->id()`. Also note the `reviews` table enforces `unique(['listing_id', 'author_id'])`, so submitting two reviews for the same listing while hardcoded to user `1` will trigger a DB constraint violation.
-2. **Hidden Reviews Not Filtered in Public/Owner Views:**
-   - `AdminController::toggleReviewVisibility()` flips `reviews.is_hidden`, but `ReviewController@index` and `ListingController@myListings` (plus `listings/my-listings.blade.php`) do not currently filter out `is_hidden = true`.
-3. **Missing Ownership Check on Listing Edit/Update:**
-   - `ListingController@edit()` and `ListingController@update()` update any listing by `$id` without verifying `$listing->provider_id === auth()->id()`.
+1. **Resolved in Services Layer Refactor:**
+   - `ReviewController@store` now uses `auth()->id()` instead of hardcoded `1`, and `ReviewController@index` / `ListingAccessor::getByUserId()` filter out `is_hidden = true` reviews.
+   - `ListingController@edit` and `update` now enforce ownership (`$listing->provider_id === auth()->id()`) or `admin` role.
+   - `GET /` now routes through `ListingController@home` -> `ListingService` & `CategoryService`.
 4. **Route Ordering & `whereNumber('id')` Constraint (`routes/web.php`):**
    - `GET /listings/{id}` is declared at line 58 *before* `GET /listings/create` at line 72, relying on `->whereNumber('id')` so `/listings/create` is not captured as `{id}`. Keep `->whereNumber('id')` intact (or move `/listings/create` above `/listings/{id}`) when refactoring routes.
    - Note HTTP methods for updates differ across layers: web user edit uses `POST /listings/{id}/edit`, admin uses `PUT /admin/listings/{id}`, and API uses `PUT /api/listings/{id}`.

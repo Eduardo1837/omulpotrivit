@@ -78,14 +78,12 @@ class ListingController extends Controller
      */
     public function create()
     {
-        if (!$this->listingService->canUserCreateListing(auth()->id())) {
-            return redirect()->route('listings.my')->with('error', 'Ai atins limita de 1 anunț gratuit. Promovează anunțul curent pentru a putea publica mai multe anunțuri.');
-        }
-
+        $canCreateFree = $this->listingService->canUserCreateListing(auth()->id(), false);
         $categories = $this->categoryService->getAllCategories();
 
         return view('listings.create', [
-            'categories' => $categories
+            'categories' => $categories,
+            'canCreateFree' => $canCreateFree,
         ]);
     }
 
@@ -95,8 +93,10 @@ class ListingController extends Controller
     public function store(Request $request)
     {
         $userId = auth()->id();
-        if (!$this->listingService->canUserCreateListing($userId)) {
-            return redirect()->route('listings.my')->with('error', 'Ai atins limita de 1 anunț gratuit. Promovează anunțul existent pentru a publica altele.');
+        $isFeatured = $request->boolean('is_featured');
+
+        if (!$this->listingService->canUserCreateListing($userId, $isFeatured)) {
+            return redirect()->route('listings.my')->with('error', 'Ai atins limita de 1 anunț gratuit. Poți publica anunțuri suplimentare doar dacă sunt promovate.');
         }
 
         $validated = $request->validate([
@@ -108,7 +108,7 @@ class ListingController extends Controller
             'category_id' => 'required|exists:categories,id',
         ]);
 
-        $validated['is_featured'] = $request->boolean('is_featured');
+        $validated['is_featured'] = $isFeatured;
 
         $listing = $this->listingService->createListing($validated, $userId);
 

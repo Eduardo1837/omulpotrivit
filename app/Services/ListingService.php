@@ -97,30 +97,31 @@ class ListingService
     }
 
     /**
-     * Verifică dacă utilizatorul poate crea un anunț nou conform regulii planului gratuit.
-     * Utilizatorul fără anunțuri promovate are voie la maximum 1 anunț activ.
+     * Verifică dacă utilizatorul poate crea un anunț nou conform regulii planului gratuit:
+     * - Un utilizator poate avea maximum 1 anunț gratuit activ (is_featured = false).
+     * - Anunțurile promovate (is_featured = true) sunt nelimitate și NU deblochează alte anunțuri gratuite.
      */
-    public function canUserCreateListing(?int $userId): bool
+    public function canUserCreateListing(?int $userId, bool $isFeatured = false): bool
     {
         if (!$userId) {
             return false;
         }
 
-        $activeCount = $this->listingAccessor->countByUserId($userId, activeOnly: true);
-        if ($activeCount === 0) {
+        if ($isFeatured) {
             return true;
         }
 
-        $hasFeatured = $this->listingAccessor->hasFeaturedByUserId($userId);
+        $activeFreeCount = $this->listingAccessor->countFreeByUserId($userId, activeOnly: true);
 
-        if (!$hasFeatured) {
+        if ($activeFreeCount >= 1) {
             Log::warning('Listing creation blocked by free-plan quota', [
                 'user_id' => $userId,
-                'active_listings_count' => $activeCount,
+                'active_free_listings_count' => $activeFreeCount,
             ]);
+            return false;
         }
 
-        return $hasFeatured;
+        return true;
     }
 
     /**

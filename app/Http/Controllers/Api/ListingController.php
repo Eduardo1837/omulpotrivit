@@ -51,9 +51,10 @@ class ListingController extends Controller
             return response()->json(['message' => 'Neautentificat.'], 401);
         }
 
-        if (!$this->listingService->canUserCreateListing($userId)) {
+        $isFeatured = $request->boolean('is_featured');
+        if (!$this->listingService->canUserCreateListing($userId, $isFeatured)) {
             return response()->json([
-                'message' => 'Ai atins limita de 1 anunț gratuit. Promovează anunțul existent pentru a publica altele.',
+                'message' => 'Ai atins limita de 1 anunț gratuit. Poți publica anunțuri suplimentare doar dacă sunt promovate.',
             ], 403);
         }
 

@@ -113,6 +113,21 @@ class ListingAccessor
     }
 
     /**
+     * Numără listările gratuite (is_featured = false) ale unui utilizator.
+     */
+    public function countFreeByUserId(int|string $userId, bool $activeOnly = true): int
+    {
+        $query = Listing::where('provider_id', $userId)
+            ->where('is_featured', false);
+
+        if ($activeOnly) {
+            $query->where('status', 'activ');
+        }
+
+        return $query->count();
+    }
+
+    /**
      * Verifică dacă utilizatorul are cel puțin o listare activă promovată.
      */
     public function hasFeaturedByUserId(int|string $userId): bool
