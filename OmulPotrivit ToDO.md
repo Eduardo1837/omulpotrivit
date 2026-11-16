@@ -36,7 +36,7 @@ OmulPotrivit ToDO:
 
 
 
-**4.Implement User Section with Plans \& API Controls (+0.75 p User API Section)**
+**4.Implement User Section with Plans \& API Controls (+0.75 p User API Section) DONE**
 
 
 
