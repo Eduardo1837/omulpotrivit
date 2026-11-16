@@ -10,12 +10,14 @@
                 </p>
             </div>
             @auth
-                <a href="{{ route('listings.create') }}" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-sm shadow-sm transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Publică Anunț
-                </a>
+                @if(auth()->user()->role !== 'admin')
+                    <a href="{{ route('listings.create') }}" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-sm shadow-sm transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Publică Anunț
+                    </a>
+                @endif
             @else
                 <a href="{{ route('login') }}" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-sm transition">
                     Autentificare pentru a posta
@@ -91,9 +93,11 @@
                         <h4 class="text-lg font-semibold text-gray-800">Nu a fost găsit niciun anunț</h4>
                         <p class="text-sm text-gray-500 mt-1">Fii primul care adaugă un anunț în această platformă!</p>
                         @auth
-                            <a href="{{ route('listings.create') }}" class="mt-4 inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
-                                Adaugă Primul Anunț
-                            </a>
+                            @if(auth()->user()->role !== 'admin')
+                                <a href="{{ route('listings.create') }}" class="mt-4 inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
+                                    Adaugă Primul Anunț
+                                </a>
+                            @endif
                         @endauth
                     </div>
                 @endforelse

@@ -20,13 +20,15 @@
                         {{ __('Anunțuri') }}
                     </x-nav-link>
 
-                    <x-nav-link :href="route('listings.my')" :active="request()->routeIs('listings.my')">
-                        {{ __('Anunțurile mele') }}
-                    </x-nav-link>
+                    @if(Auth::user()?->role !== 'admin')
+                        <x-nav-link :href="route('listings.my')" :active="request()->routeIs('listings.my')">
+                            {{ __('Anunțurile mele') }}
+                        </x-nav-link>
 
-                    <x-nav-link :href="route('listings.create')" :active="request()->routeIs('listings.create')" class="text-emerald-600 font-semibold">
-                        + {{ __('Publică Anunț') }}
-                    </x-nav-link>
+                        <x-nav-link :href="route('listings.create')" :active="request()->routeIs('listings.create')" class="text-emerald-600 font-semibold">
+                            + {{ __('Publică Anunț') }}
+                        </x-nav-link>
+                    @endif
 
                     @if(Auth::user()?->role === 'admin')
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')" class="text-indigo-600 font-semibold">
@@ -61,9 +63,11 @@
                             </x-dropdown-link>
                         @endif
 
-                        <x-dropdown-link :href="route('listings.my')">
-                            📋 {{ __('Anunțurile mele') }}
-                        </x-dropdown-link>
+                        @if(Auth::user()?->role !== 'admin')
+                            <x-dropdown-link :href="route('listings.my')">
+                                📋 {{ __('Anunțurile mele') }}
+                            </x-dropdown-link>
+                        @endif
 
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Profile') }}
@@ -106,13 +110,15 @@
                 {{ __('Anunțuri') }}
             </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('listings.my')" :active="request()->routeIs('listings.my')">
-                {{ __('Anunțurile mele') }}
-            </x-responsive-nav-link>
+            @if(Auth::user()?->role !== 'admin')
+                <x-responsive-nav-link :href="route('listings.my')" :active="request()->routeIs('listings.my')">
+                    {{ __('Anunțurile mele') }}
+                </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('listings.create')" :active="request()->routeIs('listings.create')" class="text-emerald-600 font-semibold">
-                + {{ __('Publică Anunț') }}
-            </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('listings.create')" :active="request()->routeIs('listings.create')" class="text-emerald-600 font-semibold">
+                    + {{ __('Publică Anunț') }}
+                </x-responsive-nav-link>
+            @endif
 
             @if(Auth::user()?->role === 'admin')
                 <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')" class="text-indigo-600 font-semibold bg-indigo-50/50">
