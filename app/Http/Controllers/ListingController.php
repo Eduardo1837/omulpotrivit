@@ -70,12 +70,63 @@ class ListingController extends Controller
      */
     public function myListings()
     {
-        $userId = auth()->id();
-        $listings = $this->listingService->getUserListings($userId);
-        $canCreateMore = $this->listingService->canUserCreateListing($userId);
+        $isAdminPreview = auth()->user()?->role === 'admin';
+
+        if ($isAdminPreview) {
+            $listings = $this->listingService->getAdminPreviewMockupListings();
+            $canCreateMore = false;
+        } else {
+            $userId = auth()->id();
+            $listings = $this->listingService->getUserListings($userId);
+            $canCreateMore = $this->listingService->canUserCreateListing($userId);
+        }
+
         $promotionPlans = $this->listingService->getPromotionPlans();
 
-        return view('listings.my-listings', compact('listings', 'canCreateMore', 'promotionPlans'));
+        return view('listings.my-listings', compact('listings', 'canCreateMore', 'promotionPlans', 'isAdminPreview'));
+    }
+
+    /**
+     * Previzualizare mockup pentru pagina de detalii a unui anunț din „Anunțurile Mele” (doar admin).
+     */
+    public function previewMockupDetails(int|string $id)
+    {
+        if (auth()->user()?->role !== 'admin') {
+            abort(403);
+        }
+
+        $listing = $this->listingService->getAdminPreviewMockupListingById($id);
+        if (!$listing) {
+            abort(404);
+        }
+
+        return view('listings.details', [
+            'listing' => new ListingViewModel($listing),
+            'reviews' => $listing->reviews,
+            'userHasReview' => true,
+            'isAdminPreview' => true,
+        ]);
+    }
+
+    /**
+     * Previzualizare mockup pentru formularul de editare a unui anunț (doar admin).
+     */
+    public function previewMockupEdit(int|string $id)
+    {
+        if (auth()->user()?->role !== 'admin') {
+            abort(403);
+        }
+
+        $listing = $this->listingService->getAdminPreviewMockupListingById($id);
+        if (!$listing) {
+            abort(404);
+        }
+
+        return view('listings.edit', [
+            'listing' => $listing,
+            'categories' => $this->categoryService->getAllCategories(),
+            'isAdminPreview' => true,
+        ]);
     }
 
     // --- OPERAȚIA CREATE ---

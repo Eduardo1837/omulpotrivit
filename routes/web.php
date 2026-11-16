@@ -61,6 +61,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/listings/create', [ListingController::class, 'create'])->name('listings.create');
     Route::post('/listings', [ListingController::class, 'store'])->name('listings.store');
     Route::get('/my-listings', [ListingController::class, 'myListings'])->name('listings.my');
+    Route::get('/my-listings/preview/{id}', [ListingController::class, 'previewMockupDetails'])->whereNumber('id')->name('listings.preview.details');
+    Route::get('/my-listings/preview/{id}/edit', [ListingController::class, 'previewMockupEdit'])->whereNumber('id')->name('listings.preview.edit');
     Route::get('/listings/{id}/edit', [ListingController::class, 'edit'])->name('listings.edit');
     Route::post('/listings/{id}/edit', [ListingController::class, 'update'])->name('listings.update');
 

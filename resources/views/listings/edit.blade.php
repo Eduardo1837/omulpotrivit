@@ -71,8 +71,15 @@
                 </label>
             </div>
 
-            <button type="submit" class="btn-save">Salvează Modificările</button>
-            <a href="{{ route('listings.details', $listing->id) }}" class="btn-cancel">Anulează</a>
+            @if(!($isAdminPreview ?? false))
+                <button type="submit" class="btn-save">Salvează Modificările</button>
+                <a href="{{ route('listings.details', $listing->id) }}" class="btn-cancel">Anulează</a>
+            @else
+                <span style="font-size: 13px; color: #4338ca; background: #eef2ff; padding: 8px 12px; border-radius: 6px; display: inline-block;">
+                    Mod Previzualizare Utilizator (administratorii nu pot salva modificări aici).
+                </span>
+                <a href="{{ route('listings.my') }}" class="btn-cancel">Înapoi la Anunțurile Mele</a>
+            @endif
         </form>
     </div>
 </body>

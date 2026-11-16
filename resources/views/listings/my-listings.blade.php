@@ -64,7 +64,7 @@
                                 </div>
 
                                 <h3 class="text-xl font-bold text-gray-900">
-                                    <a href="{{ route('listings.details', $listing->id) }}" class="hover:text-indigo-600 transition">
+                                    <a href="{{ ($isAdminPreview ?? false) ? route('listings.preview.details', $listing->id) : route('listings.details', $listing->id) }}" class="hover:text-indigo-600 transition">
                                         {{ $listing->title }}
                                     </a>
                                 </h3>
@@ -79,10 +79,10 @@
                             </div>
 
                             <div class="flex items-center gap-2 shrink-0">
-                                <a href="{{ route('listings.details', $listing->id) }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
+                                <a href="{{ ($isAdminPreview ?? false) ? route('listings.preview.details', $listing->id) : route('listings.details', $listing->id) }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
                                     Vezi Anunț
                                 </a>
-                                <a href="{{ route('listings.edit', $listing->id) }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition">
+                                <a href="{{ ($isAdminPreview ?? false) ? route('listings.preview.edit', $listing->id) : route('listings.edit', $listing->id) }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition">
                                     Editează
                                 </a>
                             </div>
@@ -148,7 +148,7 @@
                                         </div>
                                     </div>
 
-                                    <a href="{{ route('listings.edit', $listing->id) }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow-sm transition shrink-0">
+                                    <a href="{{ ($isAdminPreview ?? false) ? route('listings.preview.edit', $listing->id) : route('listings.edit', $listing->id) }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow-sm transition shrink-0">
                                         ★ Promovează Anunțul
                                     </a>
                                 </div>
