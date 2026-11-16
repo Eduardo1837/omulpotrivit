@@ -260,4 +260,21 @@ class UserPlansApiTest extends TestCase
             ])
             ->assertRedirect(route('listings.my'));
     }
+
+    public function test_creating_a_listing_redirects_to_my_listings(): void
+    {
+        $owner = User::factory()->create(['role' => 'user']);
+        $category = Category::create(['name' => 'IT', 'description' => 'IT services']);
+
+        $this->actingAs($owner)
+            ->post('/listings', [
+                'title' => 'Anunț Nou',
+                'description' => 'Descriere test',
+                'price' => 200,
+                'priceType' => 'fix',
+                'city' => 'Suceava',
+                'category_id' => $category->id,
+            ])
+            ->assertRedirect(route('listings.my'));
+    }
 }

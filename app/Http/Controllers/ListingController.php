@@ -178,7 +178,7 @@ class ListingController extends Controller
 
         $listing = $this->listingService->createListing($validated, $userId);
 
-        return redirect()->route('listings.details', $listing->id)->with('success', 'Anunțul a fost creat cu succes!');
+        return redirect()->route('listings.my')->with('success', 'Anunțul a fost creat cu succes!');
     }
 
     // --- OPERAȚIA EDIT ---
