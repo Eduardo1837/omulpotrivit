@@ -4,8 +4,13 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Admin - Gestionare Utilizatori') }}
             </h2>
-            <div class="text-xs text-gray-500 font-medium">
-                Total utilizatori înregistrați: <span class="font-bold text-gray-800">{{ $users->count() }}</span>
+            <div class="flex items-center gap-4">
+                <div class="text-xs text-gray-500 font-medium">
+                    Total utilizatori înregistrați: <span class="font-bold text-gray-800">{{ $users->count() }}</span>
+                </div>
+                <a href="{{ route('admin.users.create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg text-xs shadow-sm transition">
+                    + Adaugă Utilizator
+                </a>
             </div>
         </div>
     </x-slot>
