@@ -56,6 +56,14 @@ class UserPlansApiTest extends TestCase
             'is_featured' => false,
         ]);
 
+        $freePlan = PromotionPlan::create([
+            'name' => 'Free',
+            'price' => 0,
+            'currency' => 'RON',
+            'durationDays' => 0,
+            'maxItems' => 1,
+        ]);
+
         $paidPlan = PromotionPlan::create([
             'name' => 'Pro 7 Days',
             'price' => 29,
@@ -104,6 +112,28 @@ class UserPlansApiTest extends TestCase
             ->patchJson("/api/listings/{$listing->id}/toggle-status")
             ->assertStatus(200)
             ->assertJsonPath('listing.status', 'Activ');
+
+        // Owner can switch back to Free plan
+        $this->actingAs($owner)
+            ->postJson("/api/listings/{$listing->id}/promote", ['plan_id' => $freePlan->id])
+            ->assertStatus(200)
+            ->assertJsonPath('listing.este_promovat', false);
+
+        $this->assertDatabaseHas('listings', [
+            'id' => $listing->id,
+            'is_featured' => 0,
+        ]);
+
+        // Permanent delete requires typing "delete"
+        $this->actingAs($owner)
+            ->deleteJson("/api/listings/{$listing->id}", ['confirm_delete' => 'wrong'])
+            ->assertStatus(422);
+
+        $this->actingAs($owner)
+            ->deleteJson("/api/listings/{$listing->id}", ['confirm_delete' => 'delete'])
+            ->assertStatus(200);
+
+        $this->assertDatabaseMissing('listings', ['id' => $listing->id]);
     }
 
     public function test_my_listings_page_renders_api_controls_and_plans_container(): void

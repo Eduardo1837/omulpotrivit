@@ -150,9 +150,12 @@ class ListingController extends Controller
         }
 
         $updatedListing = $this->listingService->getListingById($id);
+        $message = $updatedListing?->is_featured
+            ? 'Anunțul a fost promovat cu succes.'
+            : 'Anunțul a fost trecut pe planul gratuit.';
 
         return response()->json([
-            'message' => 'Anunțul a fost promovat cu succes.',
+            'message' => $message,
             'listing' => new ListingResource($updatedListing),
         ], 200);
     }
@@ -187,9 +190,9 @@ class ListingController extends Controller
 
     /**
      * DELETE /api/listings/{id}
-     * Ștergere logică a unui anunț (status = 'inactiv')
+     * Ștergere permanentă (cu confirm_delete === 'delete') sau logică a unui anunț
      */
-    public function destroy(int|string $id): JsonResponse
+    public function destroy(Request $request, int|string $id): JsonResponse
     {
         $userId = auth()->id();
         if (!$userId) {
@@ -203,6 +206,20 @@ class ListingController extends Controller
 
         if ((int) $listing->provider_id !== $userId) {
             return response()->json(['message' => 'Nu ai permisiunea să ștergi acest anunț.'], 403);
+        }
+
+        if ($request->has('confirm_delete')) {
+            if (trim((string) $request->input('confirm_delete')) !== 'delete') {
+                return response()->json([
+                    'message' => 'Tastează "delete" pentru a confirma ștergerea permanentă.',
+                ], 422);
+            }
+
+            $this->listingService->forceDeleteListing($id, $userId);
+
+            return response()->json([
+                'message' => 'Anunțul a fost șters permanent.',
+            ], 200);
         }
 
         $this->listingService->deleteListing($id, $userId);

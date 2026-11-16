@@ -43,7 +43,7 @@
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                     <div>
                         <h3 class="text-base font-bold text-gray-900">Planuri de Promovare Disponibile</h3>
-                        <p class="text-xs text-gray-500">Selectează un plan plătit, apoi apasă „Promovează” pe oricare dintre anunțurile tale.</p>
+                        <p class="text-xs text-gray-500">Selectează un plan (gratuit sau plătit), apoi apasă „Aplică Planul” pe oricare dintre anunțurile tale.</p>
                     </div>
                     <span id="selected-plan-label" class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 hidden"></span>
                 </div>
@@ -56,7 +56,7 @@
             <!-- List of Listings -->
             <div class="space-y-6">
                 @forelse($listings as $listing)
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden">
+                    <div id="listing-card-{{ $listing->id }}" class="bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden">
                         
                         <!-- Header Card Anunț -->
                         <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -111,6 +111,16 @@
                                         class="px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition {{ $listing->status === 'activ' ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200' }}">
                                         {{ $listing->status === 'activ' ? 'Dezactivează' : 'Reactivează' }}
                                     </button>
+                                    <button
+                                        type="button"
+                                        title="Șterge permanent"
+                                        aria-label="Șterge permanent"
+                                        onclick="openDeleteModal({{ $listing->id }}, '{{ addslashes($listing->title) }}')"
+                                        class="inline-flex items-center justify-center w-8 h-8 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
                                 @endif
                             </div>
                         </div>
@@ -120,9 +130,19 @@
                             @if($listing->is_featured)
                                 <!-- STATISTICI DETALIATE (UTILIZATOR PROMOVAT) -->
                                 <div>
-                                    <div class="flex items-center gap-2 mb-3">
-                                        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                        <h4 class="text-xs font-bold uppercase tracking-wider text-gray-700">Statistici Detaliate de Performanță (Anunț Promovat)</h4>
+                                    <div class="flex items-center justify-between gap-2 mb-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-700">Statistici Detaliate de Performanță (Anunț Promovat)</h4>
+                                        </div>
+                                        @if(!($isAdminPreview ?? false))
+                                            <button
+                                                type="button"
+                                                onclick="promoteListing({{ $listing->id }})"
+                                                class="px-3 py-1 rounded-lg text-xs font-semibold bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 transition">
+                                                Aplică Planul Selectat
+                                            </button>
+                                        @endif
                                     </div>
 
                                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -209,6 +229,39 @@
         </div>
     </div>
 
+    <!-- Jira-style Permanent Delete Confirmation Modal -->
+    <div id="deleteListingModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-200">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Confirm Permanent Deletion</h3>
+            <p class="text-sm text-gray-600 mb-4">
+                You are about to permanently delete <span id="deleteListingTitle" class="font-semibold text-gray-900"></span>.
+                This action cannot be undone. Type <code class="px-1.5 py-0.5 bg-gray-100 text-rose-600 rounded font-bold">delete</code> to confirm.
+            </p>
+            <form id="deleteListingForm" onsubmit="submitDeleteListing(event)">
+                <input type="text"
+                       id="confirmDeleteInput"
+                       name="confirm_delete"
+                       autocomplete="off"
+                       placeholder="Type delete"
+                       oninput="document.getElementById('confirmDeleteSubmit').disabled = this.value.trim() !== 'delete';"
+                       class="w-full border-gray-300 rounded-lg shadow-sm focus:border-rose-500 focus:ring-rose-500 text-sm mb-4">
+                <div class="flex justify-end gap-2">
+                    <button type="button"
+                            onclick="closeDeleteModal()"
+                            class="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            id="confirmDeleteSubmit"
+                            disabled
+                            class="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition">
+                        Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let selectedPlanId = null;
         let loadedPlans = [];
@@ -268,12 +321,9 @@
                             </ul>
                         </div>
                         <div class="mt-3">
-                            ${isPaid
-                                ? `<button type="button" onclick="selectPlan(${plan.id})" class="w-full py-1.5 px-3 rounded-lg text-xs font-semibold transition ${isSelected ? 'bg-amber-500 text-white' : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-50'}">
-                                    ${isSelected ? '✓ Plan Selectat' : 'Selectează Planul'}
-                                   </button>`
-                                : '<span class="block text-center py-1.5 text-xs text-gray-400 font-medium">Plan implicit</span>'
-                            }
+                            <button type="button" onclick="selectPlan(${plan.id})" class="w-full py-1.5 px-3 rounded-lg text-xs font-semibold transition ${isSelected ? 'bg-amber-500 text-white' : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-50'}">
+                                ${isSelected ? '✓ Plan Selectat' : 'Selectează Planul'}
+                            </button>
                         </div>
                     </div>
                 `;
@@ -366,6 +416,55 @@
                 showApiFeedback(data.message || 'Statusul a fost actualizat.');
             } catch (error) {
                 showApiFeedback('Eroare de rețea la actualizarea statusului.', true);
+            }
+        }
+
+        let deleteListingId = null;
+
+        function openDeleteModal(listingId, title) {
+            deleteListingId = listingId;
+            document.getElementById('deleteListingTitle').textContent = title;
+            const input = document.getElementById('confirmDeleteInput');
+            input.value = '';
+            document.getElementById('confirmDeleteSubmit').disabled = true;
+            document.getElementById('deleteListingModal').classList.remove('hidden');
+            input.focus();
+        }
+
+        function closeDeleteModal() {
+            deleteListingId = null;
+            document.getElementById('deleteListingModal').classList.add('hidden');
+        }
+
+        async function submitDeleteListing(event) {
+            event.preventDefault();
+            if (!deleteListingId) return;
+
+            const confirmDelete = document.getElementById('confirmDeleteInput').value.trim();
+            try {
+                const response = await fetch(`/api/listings/${deleteListingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ confirm_delete: confirmDelete }),
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    showApiFeedback(data.message || 'Ștergerea anunțului a eșuat.', true);
+                    return;
+                }
+
+                const card = document.getElementById(`listing-card-${deleteListingId}`);
+                if (card) card.remove();
+                closeDeleteModal();
+                showApiFeedback(data.message || 'Anunțul a fost șters permanent.');
+            } catch (error) {
+                showApiFeedback('Eroare de rețea la ștergerea anunțului.', true);
             }
         }
 

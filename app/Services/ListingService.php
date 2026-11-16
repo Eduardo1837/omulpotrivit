@@ -249,23 +249,16 @@ class ListingService
         }
 
         $plan = $planId ? $this->promotionPlanAccessor->getById($planId) : null;
-        if ($plan && (float) $plan->price <= 0) {
-            Log::warning('Cannot promote listing with a free plan', [
-                'listing_id' => $listingId,
-                'user_id' => $userId,
-                'plan_id' => $plan->id,
-            ]);
-            return false;
-        }
+        $isFeatured = $plan ? ((float) $plan->price > 0) : true;
 
         $updated = $this->listingAccessor->update($listingId, [
-            'is_featured' => true,
+            'is_featured' => $isFeatured,
             'status' => 'activ',
         ]);
 
         if ($updated) {
             $this->invalidateListingsCache();
-            Log::info('Listing promoted via plan', [
+            Log::info($isFeatured ? 'Listing promoted via plan' : 'Listing switched to free plan', [
                 'listing_id' => $listingId,
                 'user_id' => $userId,
                 'plan_id' => $plan?->id,
