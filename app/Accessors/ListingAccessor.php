@@ -139,6 +139,21 @@ class ListingAccessor
     }
 
     /**
+     * Numără listările promovate (is_featured = true) ale unui utilizator.
+     */
+    public function countFeaturedByUserId(int|string $userId, bool $activeOnly = true): int
+    {
+        $query = Listing::where('provider_id', $userId)
+            ->where('is_featured', true);
+
+        if ($activeOnly) {
+            $query->where('status', 'activ');
+        }
+
+        return $query->count();
+    }
+
+    /**
      * Creează o listare nouă asociată unei categorii.
      */
     public function create(array $data): Listing

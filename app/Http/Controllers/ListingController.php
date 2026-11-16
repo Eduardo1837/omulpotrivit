@@ -75,15 +75,17 @@ class ListingController extends Controller
         if ($isAdminPreview) {
             $listings = $this->listingService->getAdminPreviewMockupListings();
             $canCreateMore = false;
+            $activePlanId = null;
         } else {
             $userId = auth()->id();
-            $listings = $this->listingService->getUserListings($userId);
+            $listings = $this->listingService->getUserListings($userId, activeOnly: false);
             $canCreateMore = $this->listingService->canUserCreateListing($userId);
+            $activePlanId = $this->listingService->getUserActivePlanId($userId);
         }
 
         $promotionPlans = $this->listingService->getPromotionPlans();
 
-        return view('listings.my-listings', compact('listings', 'canCreateMore', 'promotionPlans', 'isAdminPreview'));
+        return view('listings.my-listings', compact('listings', 'canCreateMore', 'promotionPlans', 'isAdminPreview', 'activePlanId'));
     }
 
     /**
@@ -176,7 +178,7 @@ class ListingController extends Controller
 
         $listing = $this->listingService->createListing($validated, $userId);
 
-        return redirect()->route('listings.details', $listing->id)->with('success', 'Anunțul a fost creat cu succes!');
+        return redirect()->route('listings.my')->with('success', 'Anunțul a fost creat cu succes!');
     }
 
     // --- OPERAȚIA EDIT ---
@@ -230,6 +232,6 @@ class ListingController extends Controller
 
         $this->listingService->updateListing($id, $validated, auth()->id());
 
-        return redirect()->route('listings.details', $id)->with('success', 'Anunțul a fost actualizat cu succes!');
+        return redirect()->route('listings.my')->with('success', 'Anunțul a fost actualizat cu succes!');
     }
 }

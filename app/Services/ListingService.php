@@ -158,6 +158,14 @@ class ListingService
     }
 
     /**
+     * Returnează ID-ul ultimului plan activ al utilizatorului.
+     */
+    public function getUserActivePlanId(int|string $userId): ?int
+    {
+        return $this->promotionPlanAccessor->getLatestActivePlanIdForUser($userId);
+    }
+
+    /**
      * Verifică dacă utilizatorul poate crea un anunț nou conform regulii planului gratuit:
      * - Un utilizator poate avea maximum 1 anunț gratuit activ (is_featured = false).
      * - Anunțurile promovate (is_featured = true) sunt nelimitate și NU deblochează alte anunțuri gratuite.
@@ -234,7 +242,65 @@ class ListingService
     }
 
     /**
-     * Promovează o listare a utilizatorului (activează is_featured = true).
+     * Verifică dacă utilizatorul a atins limita de anunțuri promovate pentru planul selectat.
+     * Returnează detalii despre limită dacă este atinsă, sau null dacă promovarea este permisă.
+     */
+    public function checkPromotionPlanLimit(int $userId, int|string $listingId, ?int $planId = null): ?array
+    {
+        if (!$planId) {
+            return null;
+        }
+
+        $plan = $this->promotionPlanAccessor->getById($planId);
+        if (!$plan) {
+            return null;
+        }
+
+        $listing = $this->listingAccessor->getById($listingId);
+        if ($listing && $listing->is_featured) {
+            return null;
+        }
+
+        if ((float) $plan->price <= 0) {
+            Log::warning('Listing promotion blocked: free plan does not allow promoted listings', [
+                'listing_id' => $listingId,
+                'user_id' => $userId,
+                'plan_id' => $plan->id,
+            ]);
+
+            return [
+                'plan_name' => $plan->name,
+                'max_items' => 0,
+                'current_count' => $this->listingAccessor->countFeaturedByUserId($userId, activeOnly: true),
+            ];
+        }
+
+        if ($plan->maxItems === null) {
+            return null;
+        }
+
+        $currentPromotedCount = $this->listingAccessor->countFeaturedByUserId($userId, activeOnly: true);
+        if ($currentPromotedCount >= (int) $plan->maxItems) {
+            Log::warning('Listing promotion blocked by plan maxItems limit', [
+                'listing_id' => $listingId,
+                'user_id' => $userId,
+                'plan_id' => $plan->id,
+                'max_items' => $plan->maxItems,
+                'current_promoted_count' => $currentPromotedCount,
+            ]);
+
+            return [
+                'plan_name' => $plan->name,
+                'max_items' => (int) $plan->maxItems,
+                'current_count' => $currentPromotedCount,
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Promovează o listare a utilizatorului (activează is_featured = true sau false pentru plan gratuit).
      */
     public function promoteListing(int|string $listingId, int $userId, ?int $planId = null): bool
     {
@@ -248,15 +314,24 @@ class ListingService
             return false;
         }
 
+        if ($this->checkPromotionPlanLimit($userId, $listingId, $planId) !== null) {
+            return false;
+        }
+
         $plan = $planId ? $this->promotionPlanAccessor->getById($planId) : null;
+        $isFeatured = $plan ? ((float) $plan->price > 0) : true;
+
         $updated = $this->listingAccessor->update($listingId, [
-            'is_featured' => true,
+            'is_featured' => $isFeatured,
             'status' => 'activ',
         ]);
 
         if ($updated) {
+            if ($plan) {
+                $this->promotionPlanAccessor->recordUserPromotion($userId, $listingId, $plan);
+            }
             $this->invalidateListingsCache();
-            Log::info('Listing promoted via plan', [
+            Log::info($isFeatured ? 'Listing promoted via plan' : 'Listing switched to free plan', [
                 'listing_id' => $listingId,
                 'user_id' => $userId,
                 'plan_id' => $plan?->id,
@@ -273,6 +348,14 @@ class ListingService
     {
         $listing = $this->listingAccessor->getById($id);
         if (!$listing) {
+            return null;
+        }
+
+        if ($actingUserId !== null && (int) $listing->provider_id !== $actingUserId) {
+            Log::warning('Unauthorized listing status toggle attempt', [
+                'listing_id' => $id,
+                'acting_user_id' => $actingUserId,
+            ]);
             return null;
         }
 

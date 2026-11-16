@@ -249,6 +249,10 @@ erDiagram
 | `GET` | `/api/listings/{id}` | *None* | `Api\ListingController@show` | Returns `200` with `ListingResource`, or `404` JSON |
 | `POST` | `/api/listings` | *None* | `Api\ListingController@store` | Validates & creates via `ListingAccessor`; returns `201` JSON |
 | `PUT` | `/api/listings/{id}` | *None* | `Api\ListingController@update` | Partial (`sometimes\|required`) update via `ListingAccessor`; returns `200` or `404` JSON |
+| `GET` | `/api/plans` | *None* | `Api\ListingController@plans` | Returns cached `PromotionPlan` list (`200` JSON) |
+| `POST` | `/api/listings/{id}/promote` | `auth:sanctum` | `Api\ListingController@promote` | Promotes owner's listing via `ListingService::promoteListing()`; returns `200`, `403`, `404`, or `422` |
+| `PATCH` | `/api/listings/{id}/toggle-status` | `auth:sanctum` | `Api\ListingController@toggleStatus` | Toggles owner's listing between `'activ'` and `'inactiv'` via `ListingService::toggleListingStatus()` |
+| `DELETE` | `/api/listings/{id}` | `auth:sanctum` | `Api\ListingController@destroy` | Logical deletion (`status = 'inactiv'`) of owner's listing via `ListingService::deleteListing()` |
 
 ---
 
@@ -316,7 +320,7 @@ Transforms a `Listing` model into a localized Romanian JSON payload:
 | `listings/details.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@details` |
 | `listings/my-listings.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@myListings` |
 | `listings/create.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@create` |
-| `listings/edit.blade.php` | **Standalone HTML + inline `<style>`** | `ListingController@edit` |
+| `listings/edit.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@edit` |
 | `reviews/index.blade.php` | **Standalone HTML + inline `<style>`** | `ReviewController@index` |
 | `reviews/create.blade.php` | **Standalone HTML + inline `<style>`** | `ReviewController@create` |
 | `laborator.blade.php` | **Standalone HTML + inline `<style>`** | `GET /laborator` |
@@ -337,6 +341,7 @@ All seeded users share the password **`parola123`**:
 - **User 2:** `maria@example.com` (`Maria Ionescu`, `role: 'user'`, Botoșani, 3 Gastronomy/Cleaning listings — 1 with `is_featured: true`)
 - **Categories (4):** `IT & Programare`, `Gaming & Game Dev`, `Gastronomie`, `Curățenie & Casă`
 - **Tags (3):** `Programare` (`programare`), `Gaming` (`gaming`), `Remote` (`remote`)
+- **Promotion Plans (3):** `Free` (`0.00 RON`, `0` days, `1` item), `Pro 7 Days` (`29.00 RON`, `7` days, `5` items), `Business 30 Days` (`79.00 RON`, `30` days, unlimited)
 
 ### Common Commands
 ```powershell
