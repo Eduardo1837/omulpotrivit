@@ -223,11 +223,15 @@ erDiagram
 | `PUT` | `/admin/users/{id}` | `admin.users.update` | `AdminController@updateUser` | Updates `name`, `email`, `role` (`admin\|user`), `city` |
 | `DELETE` | `/admin/users/{id}` | `admin.users.destroy` | `AdminController@destroyUser` | Blocks self-deletion; deletes user via `UserService` |
 | `GET` | `/admin/listings` | `admin.listings.index` | `AdminController@listingsIndex` | Lists all listings (`category`, `provider`) -> `admin/listings/index.blade.php` |
-| `GET` | `/admin/listings/create` | `admin.listings.create` | `AdminController@createListing` | Listing create form with `category_id` & `provider_id` dropdowns -> `admin/listings/create.blade.php` |
-| `POST` | `/admin/listings` | `admin.listings.store` | `AdminController@storeListing` | Validates & creates listing via `ListingService` |
 | `GET` | `/admin/listings/{id}/edit` | `admin.listings.edit` | `AdminController@editListing` | Listing moderation edit form with `category_id` & `provider_id` dropdowns -> `admin/listings/edit.blade.php` |
 | `PUT` | `/admin/listings/{id}` | `admin.listings.update` | `AdminController@updateListing` | Updates `title`, `category_id`, `provider_id`, `status`, `is_featured` |
 | `DELETE` | `/admin/listings/{id}` | `admin.listings.destroy` | `AdminController@destroyListing` | Deletes listing |
+| `GET` | `/admin/categories` | `admin.categories.index` | `AdminController@categoriesIndex` | Lists categories with parent & listing counts -> `admin/categories/index.blade.php` |
+| `GET` | `/admin/categories/create` | `admin.categories.create` | `AdminController@createCategory` | Category create form -> `admin/categories/create.blade.php` |
+| `POST` | `/admin/categories` | `admin.categories.store` | `AdminController@storeCategory` | Validates & creates category via `CategoryService` |
+| `GET` | `/admin/categories/{id}/edit` | `admin.categories.edit` | `AdminController@editCategory` | Category edit form -> `admin/categories/edit.blade.php` |
+| `PUT` | `/admin/categories/{id}` | `admin.categories.update` | `AdminController@updateCategory` | Updates `name`, `description`, `parent_id` via `CategoryService` |
+| `DELETE` | `/admin/categories/{id}` | `admin.categories.destroy` | `AdminController@destroyCategory` | Deletes category (if no listings attached) via `CategoryService` |
 | `GET` | `/admin/listings/{id}/reviews` | `admin.listings.reviews` | `AdminController@listingReviews` | Lists reviews for listing -> `admin/listings/reviews.blade.php` |
 | `PATCH` | `/admin/reviews/{id}/toggle-visibility` | `admin.reviews.toggle` | `AdminController@toggleReviewVisibility` | Toggles `is_hidden` boolean |
 | `DELETE` | `/admin/reviews/{id}` | `admin.reviews.destroy` | `AdminController@destroyReview` | Deletes review |
@@ -318,7 +322,8 @@ Transforms a `Listing` model into a localized Romanian JSON payload:
 | `laborator.blade.php` | **Standalone HTML + inline `<style>`** | `GET /laborator` |
 | `admin/dashboard.blade.php` | `<x-app-layout>` + `<x-admin-nav>` | `AdminController@dashboard` |
 | `admin/users/index.blade.php`, `admin/users/create.blade.php`, `admin/users/edit.blade.php` | `<x-app-layout>` + `<x-admin-nav>` | `AdminController@index`, `createUser`, `edit` |
-| `admin/listings/index.blade.php`, `admin/listings/create.blade.php`, `admin/listings/edit.blade.php`, `admin/listings/reviews.blade.php` | `<x-app-layout>` + `<x-admin-nav>` | `AdminController@listingsIndex`, `createListing`, `editListing`, `listingReviews` |
+| `admin/listings/index.blade.php`, `admin/listings/edit.blade.php`, `admin/listings/reviews.blade.php` | `<x-app-layout>` + `<x-admin-nav>` | `AdminController@listingsIndex`, `editListing`, `listingReviews` |
+| `admin/categories/index.blade.php`, `admin/categories/create.blade.php`, `admin/categories/edit.blade.php` | `<x-app-layout>` + `<x-admin-nav>` | `AdminController@categoriesIndex`, `createCategory`, `editCategory` |
 | `dashboard.blade.php` | `<x-app-layout>` (Tailwind) | *Currently unused* (`GET /dashboard` redirects to `admin.dashboard` or `home`) |
 
 ---

@@ -86,12 +86,18 @@ Route::middleware(['auth'])->group(function () {
         
         // Manage Listings
         Route::get('/listings', [AdminController::class, 'listingsIndex'])->name('listings.index');
-        Route::get('/listings/create', [AdminController::class, 'createListing'])->name('listings.create');
-        Route::post('/listings', [AdminController::class, 'storeListing'])->name('listings.store');
         Route::get('/listings/{id}/edit', [AdminController::class, 'editListing'])->name('listings.edit');
         Route::put('/listings/{id}', [AdminController::class, 'updateListing'])->name('listings.update');
         Route::patch('/listings/{id}/toggle-status', [AdminController::class, 'toggleListingStatus'])->name('listings.toggle-status');
         Route::delete('/listings/{id}', [AdminController::class, 'destroyListing'])->name('listings.destroy');
+
+        // Manage Categories
+        Route::get('/categories', [AdminController::class, 'categoriesIndex'])->name('categories.index');
+        Route::get('/categories/create', [AdminController::class, 'createCategory'])->name('categories.create');
+        Route::post('/categories', [AdminController::class, 'storeCategory'])->name('categories.store');
+        Route::get('/categories/{id}/edit', [AdminController::class, 'editCategory'])->name('categories.edit');
+        Route::put('/categories/{id}', [AdminController::class, 'updateCategory'])->name('categories.update');
+        Route::delete('/categories/{id}', [AdminController::class, 'destroyCategory'])->name('categories.destroy');
 
         // Manage Reviews for a Listing
         Route::get('/listings/{id}/reviews', [AdminController::class, 'listingReviews'])->name('listings.reviews');

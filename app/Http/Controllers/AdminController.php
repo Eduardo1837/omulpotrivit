@@ -111,37 +111,6 @@ class AdminController extends Controller
         return view('admin.listings.index', compact('listings'));
     }
 
-    public function createListing()
-    {
-        $categories = $this->categoryService->getAllCategories();
-        $users = $this->userService->getAllUsers();
-
-        return view('admin.listings.create', compact('categories', 'users'));
-    }
-
-    public function storeListing(Request $request)
-    {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'price' => 'required|numeric|min:0',
-            'priceType' => 'required|string|max:50',
-            'city' => 'required|string|max:100',
-            'category_id' => 'required|exists:categories,id',
-            'provider_id' => 'required|exists:users,id',
-            'status' => 'required|in:activ,inactiv',
-            'is_featured' => 'boolean',
-        ]);
-
-        $providerId = (int) $validated['provider_id'];
-        unset($validated['provider_id']);
-        $validated['is_featured'] = $request->boolean('is_featured');
-
-        $this->listingService->createListing($validated, $providerId);
-
-        return redirect()->route('admin.listings.index')->with('success', 'Listing created successfully.');
-    }
-
     public function editListing($id)
     {
         $listing = $this->listingService->getListingById($id);
@@ -240,5 +209,82 @@ class AdminController extends Controller
         }
 
         return back()->with('success', 'Review hidden successfully.');
+    }
+
+    // --- CATEGORY MANAGEMENT ---
+
+    public function categoriesIndex()
+    {
+        $categories = $this->categoryService->getAllCategories();
+
+        return view('admin.categories.index', compact('categories'));
+    }
+
+    public function createCategory()
+    {
+        $categories = $this->categoryService->getAllCategories();
+
+        return view('admin.categories.create', compact('categories'));
+    }
+
+    public function storeCategory(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name',
+            'description' => 'nullable|string',
+            'parent_id' => 'nullable|exists:categories,id',
+        ]);
+
+        $this->categoryService->createCategory($validated);
+
+        return redirect()->route('admin.categories.index')->with('success', 'Category created successfully.');
+    }
+
+    public function editCategory($id)
+    {
+        $category = $this->categoryService->getCategoryById($id);
+        if (!$category) {
+            abort(404);
+        }
+
+        $categories = $this->categoryService->getAllCategories()
+            ->reject(fn ($item) => (int) $item->id === (int) $id);
+
+        return view('admin.categories.edit', compact('category', 'categories'));
+    }
+
+    public function updateCategory(Request $request, $id)
+    {
+        $category = $this->categoryService->getCategoryById($id);
+        if (!$category) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name,' . $id,
+            'description' => 'nullable|string',
+            'parent_id' => 'nullable|exists:categories,id|not_in:' . $id,
+        ]);
+
+        $this->categoryService->updateCategory($id, $validated);
+
+        return redirect()->route('admin.categories.index')->with('success', 'Category updated successfully.');
+    }
+
+    public function destroyCategory($id)
+    {
+        $category = $this->categoryService->getCategoryById($id);
+        if (!$category) {
+            abort(404);
+        }
+
+        if ($category->listings->isNotEmpty()) {
+            return redirect()->route('admin.categories.index')
+                ->with('error', 'Cannot delete a category that still has listings.');
+        }
+
+        $this->categoryService->deleteCategory($id);
+
+        return redirect()->route('admin.categories.index')->with('success', 'Category deleted successfully.');
     }
 }

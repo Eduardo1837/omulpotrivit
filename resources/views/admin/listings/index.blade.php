@@ -1,13 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('Admin - Gestionare Anunțuri') }}
-            </h2>
-            <a href="{{ route('admin.listings.create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg text-xs shadow-sm transition">
-                + Adaugă Anunț
-            </a>
-        </div>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Admin - Gestionare Anunțuri') }}
+        </h2>
     </x-slot>
 
     <div class="py-10">

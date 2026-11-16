@@ -18,7 +18,7 @@ class AdminCrudTest extends TestCase
 
         $this->actingAs($user)->get(route('admin.dashboard'))->assertForbidden();
         $this->actingAs($user)->get(route('admin.users.create'))->assertForbidden();
-        $this->actingAs($user)->get(route('admin.listings.create'))->assertForbidden();
+        $this->actingAs($user)->get(route('admin.categories.create'))->assertForbidden();
     }
 
     public function test_admin_can_crud_users(): void
@@ -76,7 +76,59 @@ class AdminCrudTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $createdUser->id]);
     }
 
-    public function test_admin_can_crud_listings_with_foreign_keys(): void
+    public function test_admin_can_crud_categories(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $parent = Category::create(['name' => 'Servicii', 'description' => 'Categorie părinte']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.categories.index'))
+            ->assertOk()
+            ->assertSee($parent->name);
+
+        $this->actingAs($admin)
+            ->get(route('admin.categories.create'))
+            ->assertOk()
+            ->assertSee($parent->name);
+
+        $this->actingAs($admin)
+            ->post(route('admin.categories.store'), [
+                'name' => 'Instalații Sanitare',
+                'description' => 'Reparații și montaj',
+                'parent_id' => $parent->id,
+            ])
+            ->assertRedirect(route('admin.categories.index'));
+
+        $category = Category::where('name', 'Instalații Sanitare')->first();
+        $this->assertNotNull($category);
+        $this->assertSame($parent->id, $category->parent_id);
+
+        $this->actingAs($admin)
+            ->get(route('admin.categories.edit', $category->id))
+            ->assertOk();
+
+        $this->actingAs($admin)
+            ->put(route('admin.categories.update', $category->id), [
+                'name' => 'Instalații Termice',
+                'description' => 'Descriere actualizată',
+                'parent_id' => null,
+            ])
+            ->assertRedirect(route('admin.categories.index'));
+
+        $this->assertDatabaseHas('categories', [
+            'id' => $category->id,
+            'name' => 'Instalații Termice',
+            'parent_id' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.categories.destroy', $category->id))
+            ->assertRedirect(route('admin.categories.index'));
+
+        $this->assertDatabaseMissing('categories', ['id' => $category->id]);
+    }
+
+    public function test_admin_can_edit_listing_foreign_keys_and_delete(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $providerA = User::factory()->create(['role' => 'user', 'name' => 'Provider A']);
@@ -84,31 +136,17 @@ class AdminCrudTest extends TestCase
         $catA = Category::create(['name' => 'IT & Programare', 'description' => 'Servicii IT']);
         $catB = Category::create(['name' => 'Curățenie', 'description' => 'Servicii curățenie']);
 
-        $this->actingAs($admin)
-            ->get(route('admin.listings.create'))
-            ->assertOk()
-            ->assertSee($catA->name)
-            ->assertSee($providerA->name);
-
-        $this->actingAs($admin)
-            ->post(route('admin.listings.store'), [
-                'title' => 'Admin Created Listing',
-                'description' => 'Full stack development service',
-                'price' => 250,
-                'priceType' => 'fix',
-                'city' => 'Suceava',
-                'category_id' => $catA->id,
-                'provider_id' => $providerA->id,
-                'status' => 'activ',
-                'is_featured' => '1',
-            ])
-            ->assertRedirect(route('admin.listings.index'));
-
-        $listing = Listing::where('title', 'Admin Created Listing')->first();
-        $this->assertNotNull($listing);
-        $this->assertSame($catA->id, $listing->category_id);
-        $this->assertSame($providerA->id, $listing->provider_id);
-        $this->assertTrue((bool) $listing->is_featured);
+        $listing = Listing::create([
+            'title' => 'Initial Listing',
+            'description' => 'Full stack development service',
+            'price' => 250,
+            'priceType' => 'fix',
+            'city' => 'Suceava',
+            'category_id' => $catA->id,
+            'provider_id' => $providerA->id,
+            'status' => 'activ',
+            'is_featured' => false,
+        ]);
 
         $this->actingAs($admin)
             ->get(route('admin.listings.edit', $listing->id))
