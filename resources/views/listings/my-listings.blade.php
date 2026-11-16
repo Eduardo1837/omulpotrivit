@@ -138,9 +138,9 @@
                                         @if(!($isAdminPreview ?? false))
                                             <button
                                                 type="button"
-                                                onclick="promoteListing({{ $listing->id }})"
-                                                class="px-3 py-1 rounded-lg text-xs font-semibold bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 transition">
-                                                Aplică Planul Selectat
+                                                onclick="demoteListing({{ $listing->id }})"
+                                                class="px-3 py-1 rounded-lg text-xs font-semibold bg-white hover:bg-rose-50 text-gray-600 hover:text-rose-700 border border-gray-300 hover:border-rose-200 transition">
+                                                Anulează Promovarea
                                             </button>
                                         @endif
                                     </div>
@@ -410,6 +410,38 @@
                 setTimeout(() => window.location.reload(), 600);
             } catch (error) {
                 showApiFeedback('Eroare de rețea la promovarea anunțului.', true);
+            }
+        }
+
+        async function demoteListing(listingId) {
+            const freePlan = loadedPlans.find(p => Number(p.price) <= 0);
+            if (!freePlan) {
+                showApiFeedback('Planul gratuit nu este disponibil.', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/listings/${listingId}/promote`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ plan_id: freePlan.id }),
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    showApiFeedback(data.message || 'Anularea promovării a eșuat.', true);
+                    return;
+                }
+
+                showApiFeedback(data.message || 'Promovarea a fost anulată.');
+                setTimeout(() => window.location.reload(), 600);
+            } catch (error) {
+                showApiFeedback('Eroare de rețea la anularea promovării.', true);
             }
         }
 
