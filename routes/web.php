@@ -11,22 +11,11 @@ use App\Models\Listing;
 use App\Models\Tag;
 use App\Accessors\CategoryAccessor;
 use App\Accessors\ListingAccessor;
-use App\ViewModels\ListingViewModel;
 
 // ----------------------------------------------------
 // Public Routes
 // ----------------------------------------------------
-Route::get('/', function () {
-   $rawListings = Listing::with('category')->latest()->take(6)->get();
-
-   $recentListings = $rawListings->map(function ($listing) {
-        return new ListingViewModel($listing);
-    });
-
-    $categories = Category::all();
-
-   return view('welcome', compact('recentListings', 'categories'));
-})->name('home');
+Route::get('/', [ListingController::class, 'home'])->name('home');
 
 Route::get('/auth-required', function () {
     return view('auth.auth-required');
@@ -77,6 +66,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/reviews/create', [ReviewController::class, 'create'])->name('reviews.create');
     Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::put('/reviews/{id}', [ReviewController::class, 'update'])->name('reviews.update');
+    Route::delete('/reviews/{id}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
 
     // ----------------------------------------------------
     // Admin Routes
@@ -95,6 +86,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/listings', [AdminController::class, 'listingsIndex'])->name('listings.index');
         Route::get('/listings/{id}/edit', [AdminController::class, 'editListing'])->name('listings.edit');
         Route::put('/listings/{id}', [AdminController::class, 'updateListing'])->name('listings.update');
+        Route::patch('/listings/{id}/toggle-status', [AdminController::class, 'toggleListingStatus'])->name('listings.toggle-status');
         Route::delete('/listings/{id}', [AdminController::class, 'destroyListing'])->name('listings.destroy');
 
         // Manage Reviews for a Listing

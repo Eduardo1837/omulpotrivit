@@ -3,37 +3,35 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Accessors\ListingAccessor;
 use App\Http\Resources\ListingResource;
+use App\Services\ListingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ListingController extends Controller
 {
-    protected ListingAccessor $listingAccessor;
-
-    public function __construct(ListingAccessor $listingAccessor)
-    {
-        $this->listingAccessor = $listingAccessor;
+    public function __construct(
+        protected ListingService $listingService
+    ) {
     }
 
     /**
      * GET /api/listings
-     * Returnează toate entitățile în format JSON
+     * Returnează toate entitățile active în format JSON
      */
     public function index(): JsonResponse
     {
-        $listings = $this->listingAccessor->getAll();
+        $listings = $this->listingService->getAllActiveListings();
         return response()->json(ListingResource::collection($listings), 200);
     }
 
     /**
      * GET /api/listings/{id}
-     * Returnează detaliile unei singure entități
+     * Returnează detaliile unei singure entități active
      */
     public function show(int|string $id): JsonResponse
     {
-        $listing = $this->listingAccessor->getById($id);
+        $listing = $this->listingService->getActiveListingById($id);
 
         if (!$listing) {
             return response()->json(['message' => 'Entitatea nu a fost găsită.'], 404);
@@ -48,6 +46,18 @@ class ListingController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['message' => 'Neautentificat.'], 401);
+        }
+
+        $isFeatured = $request->boolean('is_featured');
+        if (!$this->listingService->canUserCreateListing($userId, $isFeatured)) {
+            return response()->json([
+                'message' => 'Ai atins limita de 1 anunț gratuit. Poți publica anunțuri suplimentare doar dacă sunt promovate.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
             'description' => 'required|string',
@@ -58,12 +68,10 @@ class ListingController extends Controller
             'is_featured' => 'nullable|boolean',
         ]);
 
-        $validated['provider_id'] = auth()->id() ?? 1;
-        $validated['status'] = 'activ';
         $validated['priceType'] = $validated['priceType'] ?? 'fix';
         $validated['is_featured'] = $request->boolean('is_featured');
 
-        $listing = $this->listingAccessor->create($validated);
+        $listing = $this->listingService->createListing($validated, $userId);
 
         return response()->json(new ListingResource($listing), 201);
     }
@@ -74,7 +82,7 @@ class ListingController extends Controller
      */
     public function update(Request $request, int|string $id): JsonResponse
     {
-        $listing = $this->listingAccessor->getById($id);
+        $listing = $this->listingService->getListingById($id);
 
         if (!$listing) {
             return response()->json(['message' => 'Entitatea nu a fost găsită.'], 404);
@@ -94,10 +102,9 @@ class ListingController extends Controller
             $validated['is_featured'] = $request->boolean('is_featured');
         }
 
-        $this->listingAccessor->update($id, $validated);
+        $this->listingService->updateListing($id, $validated, auth()->id());
 
-        // Reîncărcăm entitatea actualizată
-        $updatedListing = $this->listingAccessor->getById($id);
+        $updatedListing = $this->listingService->getListingById($id);
 
         return response()->json(new ListingResource($updatedListing), 200);
     }

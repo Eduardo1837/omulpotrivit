@@ -16,6 +16,14 @@ class CategoryAccessor
     }
 
     /**
+     * Returnează toate categoriile împreună cu listările active (status = 'activ').
+     */
+    public function getAllWithActiveListings(): Collection
+    {
+        return Category::with(['listings' => fn ($q) => $q->where('status', 'activ')])->get();
+    }
+
+    /**
      * Găsește o categorie după ID împreună cu listările asociate.
      */
     public function getById(int|string $id): ?Category

@@ -13,6 +13,12 @@
     <div class="py-10">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
             
+            @if (session('error'))
+                <div class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-sm font-medium">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             @if (isset($errors) && $errors->any())
                 <div class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
                     <div class="font-semibold text-sm mb-1">Te rugăm să corectezi erorile de mai jos:</div>
