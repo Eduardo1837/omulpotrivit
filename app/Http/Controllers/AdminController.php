@@ -120,7 +120,7 @@ class AdminController extends Controller
         }
 
         $categories = $this->categoryService->getAllCategories();
-        $users = $this->userService->getAllUsers();
+        $users = $this->userService->getAllProviders();
 
         return view('admin.listings.edit', compact('listing', 'categories', 'users'));
     }
