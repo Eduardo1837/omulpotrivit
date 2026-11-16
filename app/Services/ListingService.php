@@ -252,12 +252,30 @@ class ListingService
         }
 
         $plan = $this->promotionPlanAccessor->getById($planId);
-        if (!$plan || (float) $plan->price <= 0 || $plan->maxItems === null) {
+        if (!$plan) {
             return null;
         }
 
         $listing = $this->listingAccessor->getById($listingId);
         if ($listing && $listing->is_featured) {
+            return null;
+        }
+
+        if ((float) $plan->price <= 0) {
+            Log::warning('Listing promotion blocked: free plan does not allow promoted listings', [
+                'listing_id' => $listingId,
+                'user_id' => $userId,
+                'plan_id' => $plan->id,
+            ]);
+
+            return [
+                'plan_name' => $plan->name,
+                'max_items' => 0,
+                'current_count' => $this->listingAccessor->countFeaturedByUserId($userId, activeOnly: true),
+            ];
+        }
+
+        if ($plan->maxItems === null) {
             return null;
         }
 

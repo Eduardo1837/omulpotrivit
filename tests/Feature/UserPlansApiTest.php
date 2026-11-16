@@ -124,6 +124,16 @@ class UserPlansApiTest extends TestCase
             'is_featured' => 0,
         ]);
 
+        // Promoting a non-featured listing with Free plan is blocked (requires upgrade)
+        $this->actingAs($owner)
+            ->postJson("/api/listings/{$listing->id}/promote", ['plan_id' => $freePlan->id])
+            ->assertStatus(422)
+            ->assertJson([
+                'limit_reached' => true,
+                'plan_name' => 'Free',
+                'max_items' => 0,
+            ]);
+
         // Permanent delete requires typing "delete"
         $this->actingAs($owner)
             ->deleteJson("/api/listings/{$listing->id}", ['confirm_delete' => 'wrong'])

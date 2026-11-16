@@ -384,6 +384,14 @@
         }
 
         async function promoteListing(listingId) {
+            const selectedPlan = loadedPlans.find(p => p.id === Number(selectedPlanId));
+            if (selectedPlan && Number(selectedPlan.price) <= 0) {
+                openUpgradeModal({
+                    message: `Planul ${selectedPlan.name} nu include anunțuri promovate. Pentru a promova acest anunț, trebuie să faci upgrade la un plan superior.`,
+                });
+                return;
+            }
+
             try {
                 const response = await fetch(`/api/listings/${listingId}/promote`, {
                     method: 'POST',
