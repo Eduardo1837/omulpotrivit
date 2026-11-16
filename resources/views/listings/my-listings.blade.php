@@ -35,6 +35,24 @@
                 </div>
             @endif
 
+            <!-- Dynamic API Feedback Banner -->
+            <div id="api-feedback" class="hidden px-4 py-3 rounded-xl shadow-sm text-sm border"></div>
+
+            <!-- Promotion Plans Section (loaded via GET /api/plans) -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Planuri de Promovare Disponibile</h3>
+                        <p class="text-xs text-gray-500">Selectează un plan plătit, apoi apasă „Promovează” pe oricare dintre anunțurile tale.</p>
+                    </div>
+                    <span id="selected-plan-label" class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 hidden"></span>
+                </div>
+
+                <div id="plans-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="col-span-full text-xs text-gray-400 py-4 text-center">Se încarcă planurile de promovare...</div>
+                </div>
+            </div>
+
             <!-- List of Listings -->
             <div class="space-y-6">
                 @forelse($listings as $listing)
@@ -58,7 +76,7 @@
                                         </span>
                                     @endif
 
-                                    <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ $listing->status === 'activ' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600' }}">
+                                    <span id="status-badge-{{ $listing->id }}" class="text-xs font-medium px-2 py-0.5 rounded-full {{ $listing->status === 'activ' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600' }}">
                                         {{ ucfirst($listing->status ?? 'activ') }}
                                     </span>
                                 </div>
@@ -85,6 +103,15 @@
                                 <a href="{{ ($isAdminPreview ?? false) ? route('listings.preview.edit', $listing->id) : route('listings.edit', $listing->id) }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition">
                                     Editează
                                 </a>
+                                @if(!($isAdminPreview ?? false))
+                                    <button
+                                        type="button"
+                                        id="toggle-btn-{{ $listing->id }}"
+                                        onclick="toggleListingStatus({{ $listing->id }})"
+                                        class="px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition {{ $listing->status === 'activ' ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200' }}">
+                                        {{ $listing->status === 'activ' ? 'Dezactivează' : 'Reactivează' }}
+                                    </button>
+                                @endif
                             </div>
                         </div>
 
@@ -148,9 +175,18 @@
                                         </div>
                                     </div>
 
-                                    <a href="{{ ($isAdminPreview ?? false) ? route('listings.preview.edit', $listing->id) : route('listings.edit', $listing->id) }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow-sm transition shrink-0">
-                                        ★ Promovează Anunțul
-                                    </a>
+                                    @if($isAdminPreview ?? false)
+                                        <a href="{{ route('listings.preview.edit', $listing->id) }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow-sm transition shrink-0">
+                                            ★ Promovează Anunțul
+                                        </a>
+                                    @else
+                                        <button
+                                            type="button"
+                                            onclick="promoteListing({{ $listing->id }})"
+                                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow-sm transition shrink-0">
+                                            ★ Promovează Anunțul
+                                        </button>
+                                    @endif
                                 </div>
                             @endif
                         </div>
@@ -172,4 +208,167 @@
 
         </div>
     </div>
+
+    <script>
+        let selectedPlanId = null;
+        let loadedPlans = [];
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        function showApiFeedback(message, isError = false) {
+            const banner = document.getElementById('api-feedback');
+            if (!banner) return;
+            banner.textContent = message;
+            banner.className = isError
+                ? 'px-4 py-3 rounded-xl shadow-sm text-sm border bg-rose-50 border-rose-200 text-rose-800'
+                : 'px-4 py-3 rounded-xl shadow-sm text-sm border bg-emerald-50 border-emerald-200 text-emerald-800';
+            banner.classList.remove('hidden');
+        }
+
+        function selectPlan(planId) {
+            selectedPlanId = planId;
+            const plan = loadedPlans.find(p => p.id === planId);
+            const label = document.getElementById('selected-plan-label');
+            if (label && plan) {
+                label.textContent = `Plan selectat: ${plan.name} (${Number(plan.price).toFixed(2)} ${plan.currency})`;
+                label.classList.remove('hidden');
+            }
+            renderPlans();
+        }
+
+        function renderPlans() {
+            const grid = document.getElementById('plans-grid');
+            if (!grid) return;
+
+            if (!loadedPlans.length) {
+                grid.innerHTML = '<div class="col-span-full text-xs text-gray-500 py-4 text-center">Nu există planuri configurate.</div>';
+                return;
+            }
+
+            grid.innerHTML = loadedPlans.map(plan => {
+                const isPaid = Number(plan.price) > 0;
+                const isSelected = selectedPlanId === plan.id;
+                const borderClass = isSelected
+                    ? 'border-amber-500 ring-2 ring-amber-200 bg-amber-50/30'
+                    : 'border-gray-200 bg-gray-50/40';
+                const maxItemsText = plan.maxItems ? `Max ${plan.maxItems} anunț(uri)` : 'Anunțuri nelimitate';
+                const durationText = plan.durationDays > 0 ? `${plan.durationDays} zile promovare` : 'Fără promovare';
+
+                return `
+                    <div class="rounded-xl border p-4 flex flex-col justify-between transition ${borderClass}">
+                        <div>
+                            <div class="flex items-center justify-between gap-2">
+                                <h4 class="font-bold text-gray-900 text-sm">${plan.name}</h4>
+                                <span class="text-xs font-bold px-2 py-0.5 rounded-full ${isPaid ? 'bg-amber-100 text-amber-800' : 'bg-gray-200 text-gray-700'}">
+                                    ${Number(plan.price).toFixed(2)} ${plan.currency}
+                                </span>
+                            </div>
+                            <ul class="mt-2 space-y-1 text-xs text-gray-600">
+                                <li>• ${durationText}</li>
+                                <li>• ${maxItemsText}</li>
+                            </ul>
+                        </div>
+                        <div class="mt-3">
+                            ${isPaid
+                                ? `<button type="button" onclick="selectPlan(${plan.id})" class="w-full py-1.5 px-3 rounded-lg text-xs font-semibold transition ${isSelected ? 'bg-amber-500 text-white' : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-50'}">
+                                    ${isSelected ? '✓ Plan Selectat' : 'Selectează Planul'}
+                                   </button>`
+                                : '<span class="block text-center py-1.5 text-xs text-gray-400 font-medium">Plan implicit</span>'
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function loadPlans() {
+            try {
+                const response = await fetch('/api/plans', {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) throw new Error('Eroare la încărcarea planurilor.');
+                loadedPlans = await response.json();
+                const defaultPaid = loadedPlans.find(p => Number(p.price) > 0);
+                if (defaultPaid && !selectedPlanId) {
+                    selectPlan(defaultPaid.id);
+                } else {
+                    renderPlans();
+                }
+            } catch (error) {
+                const grid = document.getElementById('plans-grid');
+                if (grid) {
+                    grid.innerHTML = `<div class="col-span-full text-xs text-rose-600 py-4 text-center">${error.message}</div>`;
+                }
+            }
+        }
+
+        async function promoteListing(listingId) {
+            try {
+                const response = await fetch(`/api/listings/${listingId}/promote`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ plan_id: selectedPlanId }),
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    showApiFeedback(data.message || 'Promovarea a eșuat.', true);
+                    return;
+                }
+
+                showApiFeedback(data.message || 'Anunțul a fost promovat!');
+                setTimeout(() => window.location.reload(), 600);
+            } catch (error) {
+                showApiFeedback('Eroare de rețea la promovarea anunțului.', true);
+            }
+        }
+
+        async function toggleListingStatus(listingId) {
+            try {
+                const response = await fetch(`/api/listings/${listingId}/toggle-status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    credentials: 'same-origin',
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    showApiFeedback(data.message || 'Actualizarea statusului a eșuat.', true);
+                    return;
+                }
+
+                const newStatus = (data.listing?.status || 'activ').toLowerCase();
+                const badge = document.getElementById(`status-badge-${listingId}`);
+                const btn = document.getElementById(`toggle-btn-${listingId}`);
+
+                if (badge) {
+                    badge.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+                    badge.className = newStatus === 'activ'
+                        ? 'text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700'
+                        : 'text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600';
+                }
+
+                if (btn) {
+                    btn.textContent = newStatus === 'activ' ? 'Dezactivează' : 'Reactivează';
+                    btn.className = newStatus === 'activ'
+                        ? 'px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                        : 'px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200';
+                }
+
+                showApiFeedback(data.message || 'Statusul a fost actualizat.');
+            } catch (error) {
+                showApiFeedback('Eroare de rețea la actualizarea statusului.', true);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPlans);
+    </script>
 </x-app-layout>

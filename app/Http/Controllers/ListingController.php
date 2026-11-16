@@ -77,7 +77,7 @@ class ListingController extends Controller
             $canCreateMore = false;
         } else {
             $userId = auth()->id();
-            $listings = $this->listingService->getUserListings($userId);
+            $listings = $this->listingService->getUserListings($userId, activeOnly: false);
             $canCreateMore = $this->listingService->canUserCreateListing($userId);
         }
 
