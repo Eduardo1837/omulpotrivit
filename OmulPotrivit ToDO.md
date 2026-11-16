@@ -24,7 +24,7 @@ OmulPotrivit ToDO:
 
 
 
-**3.Complete Admin CRUD on 2 Entities with Foreign Key (+0.75 p Admin)**
+**3.Complete Admin CRUD on 2 Entities with Foreign Key (+0.75 p Admin) DONE**
 
 
 
@@ -36,7 +36,7 @@ OmulPotrivit ToDO:
 
 
 
-**Implement User Section with Plans \& API Controls (+0.75 p User API Section)**
+**4.Implement User Section with Plans \& API Controls (+0.75 p User API Section)**
 
 
 
