@@ -55,30 +55,54 @@
                                     @endif
                                 </td>
                                 <td class="py-3 px-4">
-                                    <div class="flex items-center gap-2">
-                                        <a href="{{ route('admin.listings.reviews', $listing->id) }}" class="bg-indigo-600 hover:bg-indigo-700 text-white py-1 px-2.5 rounded text-xs font-semibold transition">
-                                            Recenzii
+                                    <div class="flex items-center gap-1.5">
+                                        <a href="{{ route('admin.listings.reviews', $listing->id) }}"
+                                           title="Recenzii"
+                                           aria-label="Recenzii"
+                                           class="inline-flex items-center justify-center w-8 h-8 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 rounded-lg transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                            </svg>
                                         </a>
-                                        <a href="{{ route('admin.listings.edit', $listing->id) }}" class="bg-amber-500 hover:bg-amber-600 text-white py-1 px-2.5 rounded text-xs font-semibold transition">
-                                            Editare
+                                        <a href="{{ route('admin.listings.edit', $listing->id) }}"
+                                           title="Editare"
+                                           aria-label="Editare"
+                                           class="inline-flex items-center justify-center w-8 h-8 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            </svg>
                                         </a>
                                         <form action="{{ route('admin.listings.toggle-status', $listing->id) }}" method="POST">
                                             @csrf
                                             @method('PATCH')
                                             @if($listing->status === 'activ')
-                                                <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white py-1 px-2.5 rounded text-xs font-semibold transition">
-                                                    Deactivate
+                                                <button type="submit"
+                                                        title="Deactivate"
+                                                        aria-label="Deactivate"
+                                                        class="inline-flex items-center justify-center w-8 h-8 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 rounded-lg transition">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
                                                 </button>
                                             @else
-                                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white py-1 px-2.5 rounded text-xs font-semibold transition">
-                                                    Activate
+                                                <button type="submit"
+                                                        title="Activate"
+                                                        aria-label="Activate"
+                                                        class="inline-flex items-center justify-center w-8 h-8 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 rounded-lg transition">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
                                                 </button>
                                             @endif
                                         </form>
                                         <button type="button"
+                                                title="Delete"
+                                                aria-label="Delete"
                                                 onclick="openDeleteModal('{{ route('admin.listings.destroy', $listing->id) }}', '{{ addslashes($listing->title) }}')"
-                                                class="bg-rose-600 hover:bg-rose-700 text-white py-1 px-2.5 rounded text-xs font-semibold transition">
-                                            Delete
+                                                class="inline-flex items-center justify-center w-8 h-8 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
                                         </button>
                                     </div>
                                 </td>

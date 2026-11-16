@@ -36,7 +36,24 @@ class ReviewController extends Controller
             'comment'    => ['required', 'string', 'max:1000'],
         ]);
 
-        $this->reviewService->createReview($validated, auth()->id());
+        $authorId = auth()->id();
+        $existing = $this->reviewService->getReviewsForListing($validated['listing_id'], visibleOnly: false)
+            ->firstWhere('author_id', $authorId);
+
+        if ($existing) {
+            $redirect = $request->boolean('redirect_to_listing')
+                ? redirect()->route('listings.details', $validated['listing_id'])
+                : back();
+
+            return $redirect->with('error', 'Ai lăsat deja o recenzie pentru acest anunț.');
+        }
+
+        $this->reviewService->createReview($validated, $authorId);
+
+        if ($request->boolean('redirect_to_listing')) {
+            return redirect()->route('listings.details', $validated['listing_id'])
+                ->with('success', 'Recenzia a fost adăugată cu succes!');
+        }
 
         return redirect()->route('reviews.index')
             ->with('success', 'Review submitted successfully!');

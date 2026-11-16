@@ -19,6 +19,12 @@
                 </div>
             @endif
 
+            @if(session('error'))
+                <div class="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl shadow-sm text-sm">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden">
                 <div class="p-6 md:p-8">
                     <!-- Badges -->
@@ -75,11 +81,80 @@
                         </a>
 
                         @auth
-                            <a href="{{ route('reviews.create', ['listing_id' => $listing->id]) }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm shadow-sm transition">
+                            <a href="#leave-review" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm shadow-sm transition">
                                 ★ Lasă o recenzie
                             </a>
                         @endauth
                     </div>
+                </div>
+            </div>
+
+            <!-- Reviews Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-6 md:p-8 space-y-6">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">
+                            Recenzii ({{ $reviews->count() }})
+                        </h3>
+                        @if($reviews->count() > 0)
+                            <p class="text-xs text-gray-500 mt-0.5">
+                                Rating mediu: <span class="font-semibold text-amber-600">★ {{ number_format($reviews->avg('rating'), 1) }} / 5</span>
+                            </p>
+                        @endif
+                    </div>
+                </div>
+
+                @auth
+                    <form id="leave-review" action="{{ route('reviews.store') }}" method="POST" class="bg-gray-50 rounded-xl p-4 md:p-5 border border-gray-200/80 space-y-4">
+                        @csrf
+                        <input type="hidden" name="listing_id" value="{{ $listing->id }}">
+                        <input type="hidden" name="redirect_to_listing" value="1">
+
+                        <div class="flex flex-wrap items-center justify-between gap-4">
+                            <span class="text-sm font-bold text-gray-800">Adaugă o recenzie</span>
+                            <div class="flex items-center gap-2">
+                                <label for="rating" class="text-xs font-semibold text-gray-600">Rating:</label>
+                                <select id="rating" name="rating" required class="border-gray-300 rounded-lg text-sm py-1 px-2.5 focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="5" {{ old('rating') == 5 ? 'selected' : '' }}>★★★★★ (5)</option>
+                                    <option value="4" {{ old('rating') == 4 ? 'selected' : '' }}>★★★★☆ (4)</option>
+                                    <option value="3" {{ old('rating') == 3 ? 'selected' : '' }}>★★★☆☆ (3)</option>
+                                    <option value="2" {{ old('rating') == 2 ? 'selected' : '' }}>★★☆☆☆ (2)</option>
+                                    <option value="1" {{ old('rating') == 1 ? 'selected' : '' }}>★☆☆☆☆ (1)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <textarea name="comment" rows="3" required
+                                      placeholder="Scrie părerea ta despre acest serviciu..."
+                                      class="w-full border-gray-300 rounded-lg shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('comment') }}</textarea>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm shadow-sm transition">
+                                Trimite Recenzia
+                            </button>
+                        </div>
+                    </form>
+                @endauth
+
+                <div class="space-y-4">
+                    @forelse($reviews as $review)
+                        <div class="border border-gray-100 rounded-xl p-4 bg-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-semibold text-sm text-gray-900">{{ $review->author->name ?? 'Utilizator' }}</span>
+                                    <span class="text-xs text-amber-500 font-bold">
+                                        {{ str_repeat('★', (int) $review->rating) }}{{ str_repeat('☆', 5 - (int) $review->rating) }}
+                                    </span>
+                                </div>
+                                <span class="text-xs text-gray-400">{{ $review->created_at?->diffForHumans() }}</span>
+                            </div>
+                            <p class="text-sm text-gray-700 leading-relaxed">{{ $review->comment }}</p>
+                        </div>
+                    @empty
+                        <p class="text-sm text-gray-500 text-center py-4">Nu există recenzii pentru acest anunț încă.</p>
+                    @endforelse
                 </div>
             </div>
 

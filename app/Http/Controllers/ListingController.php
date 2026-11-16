@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\ListingResource;
 use App\Services\CategoryService;
 use App\Services\ListingService;
+use App\Services\ReviewService;
 use App\ViewModels\ListingViewModel;
 use Illuminate\Http\Request;
 
@@ -12,7 +13,8 @@ class ListingController extends Controller
 {
     public function __construct(
         protected ListingService $listingService,
-        protected CategoryService $categoryService
+        protected CategoryService $categoryService,
+        protected ReviewService $reviewService
     ) {
     }
 
@@ -55,7 +57,12 @@ class ListingController extends Controller
             return new ListingResource($listing);
         }
 
-        return view('listings.details', ['listing' => new ListingViewModel($listing)]);
+        $reviews = $this->reviewService->getReviewsForListing($listing->id, visibleOnly: true);
+
+        return view('listings.details', [
+            'listing' => new ListingViewModel($listing),
+            'reviews' => $reviews,
+        ]);
     }
 
     /**
