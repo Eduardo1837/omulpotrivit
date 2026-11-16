@@ -19,7 +19,7 @@
             </div>
 
             <!-- Stats Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
                 <!-- Users Stat Card -->
                 <a href="{{ route('admin.users.index') }}" class="group bg-white overflow-hidden shadow-sm hover:shadow-md sm:rounded-lg flex items-center justify-between p-6 border-l-4 border-blue-500 transition">
@@ -45,6 +45,20 @@
                     <div class="bg-green-100 group-hover:bg-green-200 p-3 rounded-full transition">
                         <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                </a>
+
+                <!-- Categories Stat Card -->
+                <a href="{{ route('admin.categories.index') }}" class="group bg-white overflow-hidden shadow-sm hover:shadow-md sm:rounded-lg flex items-center justify-between p-6 border-l-4 border-indigo-500 transition">
+                    <div>
+                        <div class="text-sm font-bold text-gray-500 uppercase tracking-wide group-hover:text-indigo-600 transition">Total Categories</div>
+                        <div class="text-3xl font-extrabold text-gray-900 mt-1">{{ $stats['categories'] }}</div>
+                        <div class="text-xs text-indigo-600 mt-2 font-medium">Click to manage categories &rarr;</div>
+                    </div>
+                    <div class="bg-indigo-100 group-hover:bg-indigo-200 p-3 rounded-full transition">
+                        <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
                         </svg>
                     </div>
                 </a>

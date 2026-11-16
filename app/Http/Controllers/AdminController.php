@@ -23,6 +23,7 @@ class AdminController extends Controller
         $stats = [
             'users' => $this->userService->countUsers(),
             'listings' => $this->listingService->countAllListings(),
+            'categories' => $this->categoryService->getAllCategories()->count(),
         ];
 
         return view('admin.dashboard', compact('stats'));

@@ -15,40 +15,45 @@
 <body class="antialiased bg-gray-50 text-gray-900 font-sans">
 
     <!-- Navigation Bar -->
-    <nav class="bg-white shadow-sm border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 items-center">
-                <!-- Logo -->
-                <div class="flex-shrink-0 flex items-center">
-                    <a href="{{ route('home') }}" class="font-bold text-2xl text-blue-600">
-                        {{ config('app.name', 'MyPlatform') }}
-                    </a>
-                </div>
-
-                <!-- Auth Links -->
-                <div class="flex items-center space-x-4">
-                    <a href="{{ route('listings.index') }}" class="text-gray-600 hover:text-gray-900 font-medium">Browse Listings</a>
-                    
-                    @if (Route::has('login'))
-                        @auth
-                            <a href="{{ route('listings.create') }}" class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3 py-1.5 rounded-lg text-sm shadow-sm transition">
-                                + Publică Anunț
+    @auth
+        @include('layouts.navigation')
+    @else
+        <nav class="bg-white border-b border-gray-100">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <!-- Logo -->
+                        <div class="shrink-0 flex items-center">
+                            <a href="{{ route('home') }}">
+                                <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
                             </a>
-                            @if(auth()->user()->role === 'admin')
-                                <a href="{{ route('admin.dashboard') }}" class="text-indigo-600 hover:text-indigo-800 font-semibold px-2 py-1.5 text-sm">🛡️ Admin</a>
-                            @endif
-                            <a href="{{ route('profile.edit') }}" class="text-gray-600 hover:text-gray-900 font-medium px-2 py-1.5 text-sm">Profil</a>
-                        @else
-                            <a href="{{ route('login') }}" class="text-gray-600 hover:text-gray-900 font-medium px-3 py-2">Log in</a>
+                        </div>
+
+                        <!-- Navigation Links -->
+                        <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                            <x-nav-link :href="route('home')" :active="request()->routeIs('home')">
+                                {{ __('Acasă') }}
+                            </x-nav-link>
+
+                            <x-nav-link :href="route('listings.index')" :active="request()->routeIs('listings.index') || request()->routeIs('listings.details')">
+                                {{ __('Anunțuri') }}
+                            </x-nav-link>
+                        </div>
+                    </div>
+
+                    <!-- Guest Links -->
+                    <div class="flex items-center space-x-4">
+                        @if (Route::has('login'))
+                            <a href="{{ route('login') }}" class="text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2">Log in</a>
                             @if (Route::has('register'))
-                                <a href="{{ route('register') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-md transition">Register</a>
+                                <a href="{{ route('register') }}" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-md transition">Register</a>
                             @endif
-                        @endauth
-                    @endif
+                        @endif
+                    </div>
                 </div>
             </div>
-        </div>
-    </nav>
+        </nav>
+    @endauth
 
     <!-- Hero Section -->
     <div class="bg-blue-600 py-20 px-4 sm:px-6 lg:px-8 text-center text-white">
