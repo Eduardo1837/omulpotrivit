@@ -10,6 +10,16 @@
             <!-- Quick Sub-Navigation Between Sections -->
             <x-admin-nav :breadcrumbs="['Anunțuri' => route('admin.listings.index'), 'Editare' => null]" />
 
+            @if ($errors->any())
+                <div class="mb-6 bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    <ul class="list-disc list-inside space-y-1">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-xl border border-gray-200/80 p-6">
                 <form action="{{ route('admin.listings.update', $listing->id) }}" method="POST">
                     @csrf
@@ -18,6 +28,30 @@
                     <div class="mb-4">
                         <label class="block text-gray-700 font-bold mb-2 text-sm">Titlu</label>
                         <input type="text" name="title" value="{{ old('title', $listing->title) }}" class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-700 font-bold mb-2 text-sm">Categorie</label>
+                            <select name="category_id" required class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                @foreach($categories as $category)
+                                    <option value="{{ $category->id }}" {{ old('category_id', $listing->category_id) == $category->id ? 'selected' : '' }}>
+                                        {{ $category->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-gray-700 font-bold mb-2 text-sm">Furnizor (Utilizator)</label>
+                            <select name="provider_id" required class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                @foreach($users as $user)
+                                    <option value="{{ $user->id }}" {{ old('provider_id', $listing->provider_id) == $user->id ? 'selected' : '' }}>
+                                        {{ $user->name }} ({{ $user->email }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
 
                     <div class="mb-4">
