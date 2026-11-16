@@ -1,0 +1,246 @@
+<?php
+
+namespace App\Services;
+
+use App\Accessors\ListingAccessor;
+use App\Accessors\PromotionPlanAccessor;
+use App\Models\Listing;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+
+class ListingService
+{
+    public const CACHE_KEY_HOME_LISTINGS = 'home.listings.active';
+    public const CACHE_KEY_ACTIVE_LISTINGS = 'listings.active.all';
+    public const CACHE_KEY_PROMOTION_PLANS = 'promotion_plans.all';
+    public const CACHE_TTL_SECONDS = 300;
+
+    public function __construct(
+        protected ListingAccessor $listingAccessor,
+        protected PromotionPlanAccessor $promotionPlanAccessor
+    ) {
+    }
+
+    /**
+     * Returnează listările active pentru pagina principală (prioritizând cele promovate), din cache.
+     */
+    public function getHomeListings(int $limit = 6): Collection
+    {
+        $cacheKey = $limit === 6
+            ? self::CACHE_KEY_HOME_LISTINGS
+            : self::CACHE_KEY_HOME_LISTINGS . '.' . $limit;
+
+        return Cache::remember($cacheKey, self::CACHE_TTL_SECONDS, function () use ($limit) {
+            return $this->listingAccessor->getActiveHomeListings($limit);
+        });
+    }
+
+    /**
+     * Returnează toate listările active, din cache.
+     */
+    public function getAllActiveListings(): Collection
+    {
+        return Cache::remember(self::CACHE_KEY_ACTIVE_LISTINGS, self::CACHE_TTL_SECONDS, function () {
+            return $this->listingAccessor->getActiveAll();
+        });
+    }
+
+    /**
+     * Returnează toate listările (inclusiv inactive) pentru panoul de administrare.
+     */
+    public function getAllListingsForAdmin(): Collection
+    {
+        return $this->listingAccessor->getAll();
+    }
+
+    /**
+     * Găsește o listare activă după ID (pentru vizualizare publică).
+     */
+    public function getActiveListingById(int|string $id): ?Listing
+    {
+        return $this->listingAccessor->getActiveById($id);
+    }
+
+    /**
+     * Găsește o listare după ID indiferent de status (pentru editare de către proprietar/admin).
+     */
+    public function getListingById(int|string $id): ?Listing
+    {
+        return $this->listingAccessor->getById($id);
+    }
+
+    /**
+     * Filtrează listările active după categorie.
+     */
+    public function getActiveListingsByCategory(int|string $categoryId): Collection
+    {
+        return $this->listingAccessor->getActiveByCategoryId($categoryId);
+    }
+
+    /**
+     * Returnează listările unui utilizator (cu recenzii vizibile).
+     */
+    public function getUserListings(int|string $userId, bool $activeOnly = true): Collection
+    {
+        return $this->listingAccessor->getByUserId($userId, $activeOnly);
+    }
+
+    /**
+     * Returnează planurile de promovare disponibile, din cache.
+     */
+    public function getPromotionPlans(): Collection
+    {
+        return Cache::remember(self::CACHE_KEY_PROMOTION_PLANS, self::CACHE_TTL_SECONDS, function () {
+            return $this->promotionPlanAccessor->getAll();
+        });
+    }
+
+    /**
+     * Verifică dacă utilizatorul poate crea un anunț nou conform regulii planului gratuit.
+     * Utilizatorul fără anunțuri promovate are voie la maximum 1 anunț activ.
+     */
+    public function canUserCreateListing(?int $userId): bool
+    {
+        if (!$userId) {
+            return false;
+        }
+
+        $activeCount = $this->listingAccessor->countByUserId($userId, activeOnly: true);
+        if ($activeCount === 0) {
+            return true;
+        }
+
+        $hasFeatured = $this->listingAccessor->hasFeaturedByUserId($userId);
+
+        if (!$hasFeatured) {
+            Log::warning('Listing creation blocked by free-plan quota', [
+                'user_id' => $userId,
+                'active_listings_count' => $activeCount,
+            ]);
+        }
+
+        return $hasFeatured;
+    }
+
+    /**
+     * Creează o listare nouă, invalidează cache-ul și înregistrează în log.
+     */
+    public function createListing(array $data, int $userId): Listing
+    {
+        $data['provider_id'] = $userId;
+        $data['status'] = $data['status'] ?? 'activ';
+        $data['is_featured'] = $data['is_featured'] ?? false;
+
+        $listing = $this->listingAccessor->create($data);
+        $this->invalidateListingsCache();
+
+        Log::info('Listing created', [
+            'listing_id' => $listing->id,
+            'provider_id' => $userId,
+            'category_id' => $listing->category_id,
+        ]);
+
+        return $listing;
+    }
+
+    /**
+     * Actualizează o listare existentă, invalidează cache-ul și înregistrează în log.
+     */
+    public function updateListing(int|string $id, array $data, ?int $actingUserId = null): bool
+    {
+        $updated = $this->listingAccessor->update($id, $data);
+
+        if ($updated) {
+            $this->invalidateListingsCache();
+
+            Log::info('Listing updated', [
+                'listing_id' => $id,
+                'acting_user_id' => $actingUserId,
+                'updated_fields' => array_keys($data),
+            ]);
+
+            if (($data['is_featured'] ?? false) === true) {
+                Log::info('Listing promoted', [
+                    'listing_id' => $id,
+                    'acting_user_id' => $actingUserId,
+                ]);
+            }
+        }
+
+        return $updated;
+    }
+
+    /**
+     * Promovează o listare a utilizatorului (activează is_featured = true).
+     */
+    public function promoteListing(int|string $listingId, int $userId, ?int $planId = null): bool
+    {
+        $listing = $this->listingAccessor->getById($listingId);
+
+        if (!$listing || (int) $listing->provider_id !== $userId) {
+            Log::warning('Unauthorized or missing listing promotion attempt', [
+                'listing_id' => $listingId,
+                'user_id' => $userId,
+            ]);
+            return false;
+        }
+
+        $plan = $planId ? $this->promotionPlanAccessor->getById($planId) : null;
+        $updated = $this->listingAccessor->update($listingId, [
+            'is_featured' => true,
+            'status' => 'activ',
+        ]);
+
+        if ($updated) {
+            $this->invalidateListingsCache();
+            Log::info('Listing promoted via plan', [
+                'listing_id' => $listingId,
+                'user_id' => $userId,
+                'plan_id' => $plan?->id,
+            ]);
+        }
+
+        return $updated;
+    }
+
+    /**
+     * Ștergere logică a unei listări (status = 'inactiv'), invalidare cache și logging.
+     */
+    public function deleteListing(int|string $id, ?int $actingUserId = null): bool
+    {
+        $deleted = $this->listingAccessor->softDelete($id);
+
+        if ($deleted) {
+            $this->invalidateListingsCache();
+            Log::info('Listing logically deleted (status set to inactiv)', [
+                'listing_id' => $id,
+                'acting_user_id' => $actingUserId,
+            ]);
+        } else {
+            Log::warning('Listing logical deletion failed: listing not found', [
+                'listing_id' => $id,
+                'acting_user_id' => $actingUserId,
+            ]);
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Invalidează cheile de cache pentru listări.
+     */
+    public function invalidateListingsCache(): void
+    {
+        Cache::forget(self::CACHE_KEY_HOME_LISTINGS);
+        Cache::forget(self::CACHE_KEY_ACTIVE_LISTINGS);
+    }
+
+    /**
+     * Invalidează cache-ul planurilor de promovare.
+     */
+    public function invalidatePromotionPlansCache(): void
+    {
+        Cache::forget(self::CACHE_KEY_PROMOTION_PLANS);
+    }
+}
