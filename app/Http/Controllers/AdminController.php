@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use Illuminate\Http\Request;
-
 use App\Http\Controllers\Controller;
 use App\Models\Listing;
-use App\Models\Review;
-
+use App\Models\User;
+use App\Services\ListingService;
+use App\Services\ReviewService;
+use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
+    public function __construct(
+        protected ListingService $listingService,
+        protected ReviewService $reviewService
+    ) {
+    }
 
     public function dashboard()
     {
@@ -68,56 +72,70 @@ class AdminController extends Controller
 
     public function listingsIndex()
     {
-        $listings = Listing::with(['category', 'provider'])->get();
+        $listings = $this->listingService->getAllListingsForAdmin();
         return view('admin.listings.index', compact('listings'));
     }
 
     public function editListing($id)
     {
-        $listing = Listing::findOrFail($id);
+        $listing = $this->listingService->getListingById($id);
+        if (!$listing) {
+            abort(404);
+        }
+
         return view('admin.listings.edit', compact('listing'));
     }
 
     public function updateListing(Request $request, $id)
     {
-        $listing = Listing::findOrFail($id);
-        
+        $listing = $this->listingService->getListingById($id);
+        if (!$listing) {
+            abort(404);
+        }
+
         $request->validate([
             'title' => 'required|string|max:255',
             'status' => 'required|string',
             'is_featured' => 'boolean',
         ]);
 
-        $listing->update([
+        $this->listingService->updateListing($id, [
             'title' => $request->title,
             'status' => $request->status,
             'is_featured' => $request->has('is_featured'),
-        ]);
+        ], auth()->id());
 
         return redirect()->route('admin.listings.index')->with('success', 'Listing updated successfully.');
     }
 
     public function destroyListing($id)
     {
-        Listing::findOrFail($id)->delete();
-        return redirect()->route('admin.listings.index')->with('success', 'Listing deleted successfully.');
+        $deleted = $this->listingService->deleteListing($id, auth()->id());
+        if (!$deleted) {
+            abort(404);
+        }
+
+        return redirect()->route('admin.listings.index')->with('success', 'Listing deactivated successfully.');
     }
 
     public function listingReviews($id)
     {
-        $listing = Listing::findOrFail($id);
-        // Load reviews with their authors
-        $reviews = Review::with('author')->where('listing_id', $id)->latest()->get();
-        
+        $listing = $this->listingService->getListingById($id);
+        if (!$listing) {
+            abort(404);
+        }
+
+        $reviews = $this->reviewService->getReviewsForListing($id, visibleOnly: false);
+
         return view('admin.listings.reviews', compact('listing', 'reviews'));
     }
 
     public function toggleReviewVisibility($id)
     {
-        $review = Review::findOrFail($id);
-        
-        // Flip the boolean value (true becomes false, false becomes true)
-        $review->update(['is_hidden' => !$review->is_hidden]);
+        $review = $this->reviewService->toggleVisibility($id, auth()->id());
+        if (!$review) {
+            abort(404);
+        }
 
         $status = $review->is_hidden ? 'hidden' : 'visible';
         return back()->with('success', "Review is now {$status}.");
@@ -125,7 +143,11 @@ class AdminController extends Controller
 
     public function destroyReview($id)
     {
-        Review::findOrFail($id)->delete();
-        return back()->with('success', 'Review deleted successfully.');
+        $hidden = $this->reviewService->hideReview($id, auth()->id());
+        if (!$hidden) {
+            abort(404);
+        }
+
+        return back()->with('success', 'Review hidden successfully.');
     }
 }

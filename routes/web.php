@@ -11,22 +11,11 @@ use App\Models\Listing;
 use App\Models\Tag;
 use App\Accessors\CategoryAccessor;
 use App\Accessors\ListingAccessor;
-use App\ViewModels\ListingViewModel;
 
 // ----------------------------------------------------
 // Public Routes
 // ----------------------------------------------------
-Route::get('/', function () {
-   $rawListings = Listing::with('category')->latest()->take(6)->get();
-
-   $recentListings = $rawListings->map(function ($listing) {
-        return new ListingViewModel($listing);
-    });
-
-    $categories = Category::all();
-
-   return view('welcome', compact('recentListings', 'categories'));
-})->name('home');
+Route::get('/', [ListingController::class, 'home'])->name('home');
 
 Route::get('/auth-required', function () {
     return view('auth.auth-required');

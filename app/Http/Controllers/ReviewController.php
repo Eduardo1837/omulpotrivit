@@ -2,26 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ListingService;
+use App\Services\ReviewService;
 use Illuminate\Http\Request;
-
-use App\Models\Review;
-use App\Models\Listing;
 
 class ReviewController extends Controller
 {
+    public function __construct(
+        protected ReviewService $reviewService,
+        protected ListingService $listingService
+    ) {
+    }
+
     public function index()
     {
-        // Eager load relationships to prevent N+1 queries
-        $reviews = Review::with(['listing', 'author'])
-            ->latest()
-            ->paginate(10);
+        $reviews = $this->reviewService->getVisibleReviewsPaginated(10);
 
         return view('reviews.index', compact('reviews'));
     }
 
     public function create()
     {
-        $listings = Listing::all();
+        $listings = $this->listingService->getAllActiveListings();
 
         return view('reviews.create', compact('listings'));
     }
@@ -34,10 +36,7 @@ class ReviewController extends Controller
             'comment'    => ['required', 'string', 'max:1000'],
         ]);
 
-        // Assign the currently authenticated user as the author
-        $validated['author_id'] = 1; // Replace with auth()->id() in a real application
-
-        Review::create($validated);
+        $this->reviewService->createReview($validated, auth()->id());
 
         return redirect()->route('reviews.index')
             ->with('success', 'Review submitted successfully!');
