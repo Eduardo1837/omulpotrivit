@@ -230,6 +230,6 @@ class ListingController extends Controller
 
         $this->listingService->updateListing($id, $validated, auth()->id());
 
-        return redirect()->route('listings.details', $id)->with('success', 'Anunțul a fost actualizat cu succes!');
+        return redirect()->route('listings.my')->with('success', 'Anunțul a fost actualizat cu succes!');
     }
 }

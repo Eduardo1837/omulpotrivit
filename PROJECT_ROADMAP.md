@@ -320,7 +320,7 @@ Transforms a `Listing` model into a localized Romanian JSON payload:
 | `listings/details.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@details` |
 | `listings/my-listings.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@myListings` |
 | `listings/create.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@create` |
-| `listings/edit.blade.php` | **Standalone HTML + inline `<style>`** | `ListingController@edit` |
+| `listings/edit.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@edit` |
 | `reviews/index.blade.php` | **Standalone HTML + inline `<style>`** | `ReviewController@index` |
 | `reviews/create.blade.php` | **Standalone HTML + inline `<style>`** | `ReviewController@create` |
 | `laborator.blade.php` | **Standalone HTML + inline `<style>`** | `GET /laborator` |

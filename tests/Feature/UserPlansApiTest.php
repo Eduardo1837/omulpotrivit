@@ -209,4 +209,39 @@ class UserPlansApiTest extends TestCase
             ->assertStatus(200)
             ->assertJsonPath('listing.este_promovat', true);
     }
+
+    public function test_edit_listing_renders_tailwind_layout_and_updates_redirect_to_my_listings(): void
+    {
+        $owner = User::factory()->create(['role' => 'user']);
+        $category = Category::create(['name' => 'IT', 'description' => 'IT services']);
+
+        $listing = Listing::create([
+            'provider_id' => $owner->id,
+            'category_id' => $category->id,
+            'title' => 'Titlu Vechi',
+            'description' => 'Descriere',
+            'price' => 100,
+            'priceType' => 'fix',
+            'city' => 'Suceava',
+            'status' => 'activ',
+            'is_featured' => false,
+        ]);
+
+        $this->actingAs($owner)
+            ->get("/listings/{$listing->id}/edit")
+            ->assertStatus(200)
+            ->assertSee('Editează Anunțul')
+            ->assertSee(route('listings.my'));
+
+        $this->actingAs($owner)
+            ->post("/listings/{$listing->id}/edit", [
+                'title' => 'Titlu Nou',
+                'description' => 'Descriere nouă',
+                'price' => 150,
+                'priceType' => 'fix',
+                'city' => 'Suceava',
+                'category_id' => $category->id,
+            ])
+            ->assertRedirect(route('listings.my'));
+    }
 }
