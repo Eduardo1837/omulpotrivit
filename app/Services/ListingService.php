@@ -249,6 +249,15 @@ class ListingService
         }
 
         $plan = $planId ? $this->promotionPlanAccessor->getById($planId) : null;
+        if ($plan && (float) $plan->price <= 0) {
+            Log::warning('Cannot promote listing with a free plan', [
+                'listing_id' => $listingId,
+                'user_id' => $userId,
+                'plan_id' => $plan->id,
+            ]);
+            return false;
+        }
+
         $updated = $this->listingAccessor->update($listingId, [
             'is_featured' => true,
             'status' => 'activ',
@@ -273,6 +282,14 @@ class ListingService
     {
         $listing = $this->listingAccessor->getById($id);
         if (!$listing) {
+            return null;
+        }
+
+        if ($actingUserId !== null && (int) $listing->provider_id !== $actingUserId) {
+            Log::warning('Unauthorized listing status toggle attempt', [
+                'listing_id' => $id,
+                'acting_user_id' => $actingUserId,
+            ]);
             return null;
         }
 
