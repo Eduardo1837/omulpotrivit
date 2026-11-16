@@ -32,6 +32,14 @@ class UserService
     }
 
     /**
+     * Returnează utilizatorii non-admin eligibili ca furnizori.
+     */
+    public function getAllProviders(): Collection
+    {
+        return $this->userAccessor->getAllProviders();
+    }
+
+    /**
      * Găsește un utilizator după ID.
      */
     public function getUserById(int|string $id): ?User

@@ -24,6 +24,14 @@ class UserAccessor
     }
 
     /**
+     * Returnează utilizatorii non-admin (furnizori eligibili), ordonați după nume.
+     */
+    public function getAllProviders(): Collection
+    {
+        return User::where('role', '!=', 'admin')->orderBy('name')->get();
+    }
+
+    /**
      * Găsește un utilizator după ID.
      */
     public function getById(int|string $id): ?User
