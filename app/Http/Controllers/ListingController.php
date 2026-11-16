@@ -96,7 +96,9 @@ class ListingController extends Controller
         $isFeatured = $request->boolean('is_featured');
 
         if (!$this->listingService->canUserCreateListing($userId, $isFeatured)) {
-            return redirect()->route('listings.my')->with('error', 'Ai atins limita de 1 anunț gratuit. Poți publica anunțuri suplimentare doar dacă sunt promovate.');
+            return redirect()->route('listings.create')
+                ->withInput()
+                ->with('error', 'Ai atins limita de 1 anunț gratuit. Bifează opțiunea de promovare (Featured) pentru a publica un anunț suplimentar.');
         }
 
         $validated = $request->validate([
