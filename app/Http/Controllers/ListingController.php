@@ -75,15 +75,17 @@ class ListingController extends Controller
         if ($isAdminPreview) {
             $listings = $this->listingService->getAdminPreviewMockupListings();
             $canCreateMore = false;
+            $activePlanId = null;
         } else {
             $userId = auth()->id();
             $listings = $this->listingService->getUserListings($userId, activeOnly: false);
             $canCreateMore = $this->listingService->canUserCreateListing($userId);
+            $activePlanId = $this->listingService->getUserActivePlanId($userId);
         }
 
         $promotionPlans = $this->listingService->getPromotionPlans();
 
-        return view('listings.my-listings', compact('listings', 'canCreateMore', 'promotionPlans', 'isAdminPreview'));
+        return view('listings.my-listings', compact('listings', 'canCreateMore', 'promotionPlans', 'isAdminPreview', 'activePlanId'));
     }
 
     /**

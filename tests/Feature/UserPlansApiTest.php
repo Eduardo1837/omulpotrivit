@@ -208,6 +208,12 @@ class UserPlansApiTest extends TestCase
             ->postJson("/api/listings/{$secondListing->id}/promote", ['plan_id' => $unlimitedPlan->id])
             ->assertStatus(200)
             ->assertJsonPath('listing.este_promovat', true);
+
+        // Reloading /my-listings preserves the upgraded plan as active
+        $this->actingAs($owner)
+            ->get('/my-listings')
+            ->assertStatus(200)
+            ->assertViewHas('activePlanId', $unlimitedPlan->id);
     }
 
     public function test_edit_listing_renders_tailwind_layout_and_updates_redirect_to_my_listings(): void

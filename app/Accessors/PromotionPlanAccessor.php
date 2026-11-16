@@ -2,6 +2,7 @@
 
 namespace App\Accessors;
 
+use App\Models\Promotion;
 use App\Models\PromotionPlan;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -46,5 +47,33 @@ class PromotionPlanAccessor
     public function delete(int|string $id): bool
     {
         return (bool) PromotionPlan::destroy($id);
+    }
+
+    /**
+     * Înregistrează o promovare activă pentru utilizator și anunț.
+     */
+    public function recordUserPromotion(int $userId, int|string $listingId, PromotionPlan $plan): Promotion
+    {
+        return Promotion::create([
+            'plan_id' => $plan->id,
+            'user_id' => $userId,
+            'listing_id' => $listingId,
+            'startsAt' => now(),
+            'endsAt' => $plan->durationDays > 0 ? now()->addDays($plan->durationDays) : null,
+            'status' => 'ACTIVE',
+        ]);
+    }
+
+    /**
+     * Returnează ID-ul ultimului plan activ selectat/folosit de utilizator.
+     */
+    public function getLatestActivePlanIdForUser(int|string $userId): ?int
+    {
+        $promotion = Promotion::where('user_id', $userId)
+            ->where('status', 'ACTIVE')
+            ->latest('id')
+            ->first();
+
+        return $promotion?->plan_id;
     }
 }

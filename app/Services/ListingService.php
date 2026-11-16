@@ -158,6 +158,14 @@ class ListingService
     }
 
     /**
+     * Returnează ID-ul ultimului plan activ al utilizatorului.
+     */
+    public function getUserActivePlanId(int|string $userId): ?int
+    {
+        return $this->promotionPlanAccessor->getLatestActivePlanIdForUser($userId);
+    }
+
+    /**
      * Verifică dacă utilizatorul poate crea un anunț nou conform regulii planului gratuit:
      * - Un utilizator poate avea maximum 1 anunț gratuit activ (is_featured = false).
      * - Anunțurile promovate (is_featured = true) sunt nelimitate și NU deblochează alte anunțuri gratuite.
@@ -301,6 +309,9 @@ class ListingService
         ]);
 
         if ($updated) {
+            if ($plan) {
+                $this->promotionPlanAccessor->recordUserPromotion($userId, $listingId, $plan);
+            }
             $this->invalidateListingsCache();
             Log::info($isFeatured ? 'Listing promoted via plan' : 'Listing switched to free plan', [
                 'listing_id' => $listingId,

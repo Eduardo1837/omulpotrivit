@@ -290,7 +290,7 @@
     </div>
 
     <script>
-        let selectedPlanId = null;
+        let selectedPlanId = @json($activePlanId ?? null);
         let loadedPlans = [];
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
@@ -365,11 +365,15 @@
                 });
                 if (!response.ok) throw new Error('Eroare la încărcarea planurilor.');
                 loadedPlans = await response.json();
-                const defaultPaid = loadedPlans.find(p => Number(p.price) > 0);
-                if (defaultPaid && !selectedPlanId) {
-                    selectPlan(defaultPaid.id);
+                if (selectedPlanId && loadedPlans.some(p => p.id === Number(selectedPlanId))) {
+                    selectPlan(Number(selectedPlanId));
                 } else {
-                    renderPlans();
+                    const defaultPaid = loadedPlans.find(p => Number(p.price) > 0);
+                    if (defaultPaid) {
+                        selectPlan(defaultPaid.id);
+                    } else {
+                        renderPlans();
+                    }
                 }
             } catch (error) {
                 const grid = document.getElementById('plans-grid');
