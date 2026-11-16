@@ -108,4 +108,107 @@ class ListingController extends Controller
 
         return response()->json(new ListingResource($updatedListing), 200);
     }
+
+    /**
+     * GET /api/plans
+     * Returnează planurile de promovare disponibile în format JSON
+     */
+    public function plans(): JsonResponse
+    {
+        $plans = $this->listingService->getPromotionPlans();
+
+        return response()->json($plans, 200);
+    }
+
+    /**
+     * POST /api/listings/{id}/promote
+     * Promovează un anunț al utilizatorului autentificat
+     */
+    public function promote(Request $request, int|string $id): JsonResponse
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['message' => 'Neautentificat.'], 401);
+        }
+
+        $listing = $this->listingService->getListingById($id);
+        if (!$listing) {
+            return response()->json(['message' => 'Anunțul nu a fost găsit.'], 404);
+        }
+
+        if ((int) $listing->provider_id !== $userId) {
+            return response()->json(['message' => 'Nu ai permisiunea să promovezi acest anunț.'], 403);
+        }
+
+        $validated = $request->validate([
+            'plan_id' => 'nullable|integer|exists:promotion_plans,id',
+        ]);
+
+        $promoted = $this->listingService->promoteListing($id, $userId, $validated['plan_id'] ?? null);
+        if (!$promoted) {
+            return response()->json(['message' => 'Anunțul nu poate fi promovat cu planul selectat.'], 422);
+        }
+
+        $updatedListing = $this->listingService->getListingById($id);
+
+        return response()->json([
+            'message' => 'Anunțul a fost promovat cu succes.',
+            'listing' => new ListingResource($updatedListing),
+        ], 200);
+    }
+
+    /**
+     * PATCH /api/listings/{id}/toggle-status
+     * Comută statusul unui anunț între 'activ' și 'inactiv'
+     */
+    public function toggleStatus(int|string $id): JsonResponse
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['message' => 'Neautentificat.'], 401);
+        }
+
+        $listing = $this->listingService->getListingById($id);
+        if (!$listing) {
+            return response()->json(['message' => 'Anunțul nu a fost găsit.'], 404);
+        }
+
+        if ((int) $listing->provider_id !== $userId) {
+            return response()->json(['message' => 'Nu ai permisiunea să modifici acest anunț.'], 403);
+        }
+
+        $updatedListing = $this->listingService->toggleListingStatus($id, $userId);
+
+        return response()->json([
+            'message' => 'Statusul anunțului a fost actualizat.',
+            'listing' => new ListingResource($updatedListing),
+        ], 200);
+    }
+
+    /**
+     * DELETE /api/listings/{id}
+     * Ștergere logică a unui anunț (status = 'inactiv')
+     */
+    public function destroy(int|string $id): JsonResponse
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['message' => 'Neautentificat.'], 401);
+        }
+
+        $listing = $this->listingService->getListingById($id);
+        if (!$listing) {
+            return response()->json(['message' => 'Anunțul nu a fost găsit.'], 404);
+        }
+
+        if ((int) $listing->provider_id !== $userId) {
+            return response()->json(['message' => 'Nu ai permisiunea să ștergi acest anunț.'], 403);
+        }
+
+        $this->listingService->deleteListing($id, $userId);
+
+        return response()->json([
+            'message' => 'Anunțul a fost dezactivat (ștergere logică).',
+        ], 200);
+    }
 }
