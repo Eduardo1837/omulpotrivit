@@ -38,6 +38,18 @@ class AdminController extends Controller
         return view('admin.users.index', compact('users'));
     }
 
+    public function userSubscriptions($id)
+    {
+        $user = $this->userService->getUserById($id);
+        if (!$user) {
+            abort(404);
+        }
+
+        $promotions = $this->listingService->getUserPromotionsHistory($id);
+
+        return view('admin.users.subscriptions', compact('user', 'promotions'));
+    }
+
     public function createUser()
     {
         return view('admin.users.create');

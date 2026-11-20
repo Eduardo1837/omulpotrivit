@@ -107,4 +107,15 @@ class PromotionPlanAccessor
 
         return $promotion?->plan_id;
     }
+
+    /**
+     * Returnează istoricul complet al promovărilor/abonamentelor unui utilizator.
+     */
+    public function getUserPromotionsHistory(int|string $userId): Collection
+    {
+        return Promotion::with(['plan', 'listing'])
+            ->where('user_id', $userId)
+            ->latest('id')
+            ->get();
+    }
 }

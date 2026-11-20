@@ -172,6 +172,14 @@ class ListingService
     }
 
     /**
+     * Returnează istoricul abonamentelor/promovărilor unui utilizator.
+     */
+    public function getUserPromotionsHistory(int|string $userId): Collection
+    {
+        return $this->promotionPlanAccessor->getUserPromotionsHistory($userId);
+    }
+
+    /**
      * Verifică dacă utilizatorul poate crea un anunț nou conform regulii planului gratuit:
      * - Un utilizator poate avea maximum 1 anunț gratuit activ (is_featured = false).
      * - Anunțurile promovate (is_featured = true) sunt nelimitate și NU deblochează alte anunțuri gratuite.
@@ -398,6 +406,24 @@ class ListingService
             ]);
         } else {
             Log::warning('Listing logical deletion failed: listing not found', [
+                'listing_id' => $id,
+                'acting_user_id' => $actingUserId,
+            ]);
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Marchează o listare ca ștearsă (status = 'deleted') pentru păstrarea istoricului, fără a o elimina din DB.
+     */
+    public function markListingAsDeleted(int|string $id, ?int $actingUserId = null): bool
+    {
+        $deleted = $this->listingAccessor->markAsDeleted($id);
+
+        if ($deleted) {
+            $this->invalidateListingsCache();
+            Log::info('Listing marked as deleted (preserved in DB for history)', [
                 'listing_id' => $id,
                 'acting_user_id' => $actingUserId,
             ]);
