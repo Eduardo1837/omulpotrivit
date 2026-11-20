@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Accessors\ListingAccessor;
 use App\Accessors\PromotionPlanAccessor;
+use App\Events\ListingPromoted;
 use App\Models\Listing;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
@@ -336,6 +337,11 @@ class ListingService
                 'user_id' => $userId,
                 'plan_id' => $plan?->id,
             ]);
+
+            if ($isFeatured) {
+                $promotedListing = $this->listingAccessor->getById($listingId) ?? $listing;
+                ListingPromoted::dispatch($promotedListing, $userId, $plan);
+            }
         }
 
         return $updated;

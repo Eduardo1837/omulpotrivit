@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Accessors\ReviewAccessor;
+use App\Events\ReviewCreated;
 use App\Models\Review;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -40,12 +41,15 @@ class ReviewService
         $data['is_hidden'] = $data['is_hidden'] ?? false;
 
         $review = $this->reviewAccessor->create($data);
+        $review->loadMissing(['listing', 'author']);
 
         Log::info('Review created', [
             'review_id' => $review->id,
             'listing_id' => $review->listing_id,
             'author_id' => $authorId,
         ]);
+
+        ReviewCreated::dispatch($review);
 
         return $review;
     }

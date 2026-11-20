@@ -49,11 +49,20 @@
 
 ### `app/`
 - **`app/Accessors/`** (Data Access Layer)
+  - `AppNotificationAccessor.php` — Creates and retrieves `AppNotification` records (`notifications` table).
   - `CategoryAccessor.php` — Eager-loads and manages CRUD for `Category` (`getAll()`, `getAllWithActiveListings()`, `getById()`, `create()`, `update()`, `delete()`).
   - `ListingAccessor.php` — Eager-loads and manages CRUD, active-only/featured-first queries, `countAll()`, user listing queries, and logical deletion (`softDelete()` setting `status = 'inactiv'`).
   - `PromotionPlanAccessor.php` — Manages read/CRUD queries for `PromotionPlan`.
   - `ReviewAccessor.php` — Manages visible (`is_hidden = false`) review queries and logical hiding (`setHidden()`, `toggleHidden()`).
+  - `StatEventAccessor.php` — Records analytics events in `StatEvent` (`stat_events` table).
   - `UserAccessor.php` — Manages `User` queries (`getAllWithListings()`, `getAll()`, `getById()`, `getByEmail()`, `count()`) and CRUD.
+- **`app/Events/`** (Domain Events)
+  - `ListingPromoted.php` — Dispatched from `ListingService::promoteListing()` when a listing is promoted (`is_featured = true`).
+  - `ReviewCreated.php` — Dispatched from `ReviewService::createReview()` when a new review is created.
+- **`app/Listeners/`** (Event Listeners)
+  - `SendPromotionNotification.php` — Listens to `ListingPromoted` and creates an unread `AppNotification` via `AppNotificationAccessor`.
+  - `RecordPromotionStatEvent.php` — Listens to `ListingPromoted`, records a `'promovare'` `StatEvent` via `StatEventAccessor`, and logs the event.
+  - `SendReviewNotification.php` — Listens to `ReviewCreated` and notifies the listing's `provider_id` via `AppNotificationAccessor`.
 - **`app/Services/`** (Business Logic, Cache, Logging & Logical Deletion)
   - `ListingService.php` — Injects `ListingAccessor` & `PromotionPlanAccessor`; caches home listings, active listings, and promotion plans (`Cache::remember` / `Cache::forget`); enforces free-plan quota (`canUserCreateListing`), promotion, logical deletion (`status = 'inactiv'`), `countAllListings()`, and logging (`Log::info` / `Log::warning`).
   - `CategoryService.php` — Injects `CategoryAccessor`; caches categories and active-listing categories with invalidation and logging.
