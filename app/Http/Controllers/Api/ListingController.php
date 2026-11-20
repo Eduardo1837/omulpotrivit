@@ -4,15 +4,64 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ListingResource;
+use App\Services\CategoryService;
 use App\Services\ListingService;
+use App\Services\ReviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ListingController extends Controller
 {
     public function __construct(
-        protected ListingService $listingService
+        protected ListingService $listingService,
+        protected CategoryService $categoryService,
+        protected ReviewService $reviewService
     ) {
+    }
+
+    /**
+     * GET /api/home
+     * Returnează listările recomandate și categoriile active pentru pagina principală
+     */
+    public function home(): JsonResponse
+    {
+        $recentListings = $this->listingService->getHomeListings(6);
+        $categories = $this->categoryService->getAllCategoriesWithActiveListings();
+
+        return response()->json([
+            'listings' => ListingResource::collection($recentListings)->resolve(),
+            'categories' => $categories,
+        ], 200);
+    }
+
+    /**
+     * GET /api/categories
+     * Returnează toate categoriile disponibile în format JSON
+     */
+    public function categories(): JsonResponse
+    {
+        return response()->json($this->categoryService->getAllCategories(), 200);
+    }
+
+    /**
+     * GET /api/my-listings
+     * Returnează anunțurile utilizatorului autentificat și planurile de promovare
+     */
+    public function myListings(): JsonResponse
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['message' => 'Neautentificat.'], 401);
+        }
+
+        $listings = $this->listingService->getUserListings($userId, activeOnly: false);
+
+        return response()->json([
+            'listings' => ListingResource::collection($listings)->resolve(),
+            'can_create_more' => $this->listingService->canUserCreateListing($userId),
+            'active_plan_id' => $this->listingService->getUserActivePlanId($userId),
+            'promotion_plans' => $this->listingService->getPromotionPlans(),
+        ], 200);
     }
 
     /**
@@ -27,7 +76,7 @@ class ListingController extends Controller
 
     /**
      * GET /api/listings/{id}
-     * Returnează detaliile unei singure entități active
+     * Returnează detaliile unei singure entități active și recenziile vizibile
      */
     public function show(int|string $id): JsonResponse
     {
@@ -35,6 +84,44 @@ class ListingController extends Controller
 
         if (!$listing) {
             return response()->json(['message' => 'Entitatea nu a fost găsită.'], 404);
+        }
+
+        $reviews = $this->reviewService->getReviewsForListing($listing->id, visibleOnly: true);
+        $currentUserId = auth()->id() ?? auth('sanctum')->id();
+
+        $payload = (new ListingResource($listing))->resolve();
+        $payload['reviews'] = $reviews->map(fn ($r) => [
+            'id' => $r->id,
+            'listing_id' => $r->listing_id,
+            'author_id' => $r->author_id,
+            'author_name' => $r->author->name ?? 'Utilizator',
+            'rating' => (int) $r->rating,
+            'comment' => $r->comment,
+            'created_at_human' => $r->created_at?->diffForHumans(),
+        ])->values();
+        $payload['user_has_review'] = $currentUserId !== null && $reviews->contains('author_id', $currentUserId);
+
+        return response()->json($payload, 200);
+    }
+
+    /**
+     * GET /api/listings/{id}/own
+     * Returnează detaliile propriei listări (inclusiv inactive) pentru formularul de editare
+     */
+    public function showOwn(int|string $id): JsonResponse
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['message' => 'Neautentificat.'], 401);
+        }
+
+        $listing = $this->listingService->getListingById($id);
+        if (!$listing) {
+            return response()->json(['message' => 'Anunțul nu a fost găsit.'], 404);
+        }
+
+        if ((int) $listing->provider_id !== $userId && auth()->user()?->role !== 'admin') {
+            return response()->json(['message' => 'Nu ai permisiunea să accesezi acest anunț.'], 403);
         }
 
         return response()->json(new ListingResource($listing), 200);
@@ -49,6 +136,10 @@ class ListingController extends Controller
         $userId = auth()->id();
         if (!$userId) {
             return response()->json(['message' => 'Neautentificat.'], 401);
+        }
+
+        if (auth()->user()?->role === 'admin') {
+            return response()->json(['message' => 'Administratorii nu pot crea anunțuri.'], 403);
         }
 
         $isFeatured = $request->boolean('is_featured');
@@ -82,10 +173,19 @@ class ListingController extends Controller
      */
     public function update(Request $request, int|string $id): JsonResponse
     {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['message' => 'Neautentificat.'], 401);
+        }
+
         $listing = $this->listingService->getListingById($id);
 
         if (!$listing) {
             return response()->json(['message' => 'Entitatea nu a fost găsită.'], 404);
+        }
+
+        if ((int) $listing->provider_id !== $userId && auth()->user()?->role !== 'admin') {
+            return response()->json(['message' => 'Nu ai permisiunea să actualizezi acest anunț.'], 403);
         }
 
         $validated = $request->validate([
@@ -102,7 +202,7 @@ class ListingController extends Controller
             $validated['is_featured'] = $request->boolean('is_featured');
         }
 
-        $this->listingService->updateListing($id, $validated, auth()->id());
+        $this->listingService->updateListing($id, $validated, $userId);
 
         $updatedListing = $this->listingService->getListingById($id);
 
