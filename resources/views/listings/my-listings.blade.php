@@ -66,15 +66,10 @@
                                         {{ $listing->category->name ?? 'Fără categorie' }}
                                     </span>
 
-                                    @if($listing->is_featured)
-                                        <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
-                                            ★ Promovat (Plătit)
-                                        </span>
-                                    @else
-                                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                                            Nepromovat (Plan Gratuit)
-                                        </span>
-                                    @endif
+                                    <span id="featured-badge-{{ $listing->id }}"
+                                          class="text-xs px-2.5 py-0.5 rounded-full {{ $listing->is_featured ? 'font-bold bg-amber-100 text-amber-800 flex items-center gap-1' : 'font-semibold bg-gray-100 text-gray-600' }}">
+                                        {{ $listing->is_featured ? '★ Promovat (Plătit)' : 'Nepromovat (Plan Gratuit)' }}
+                                    </span>
 
                                     <span id="status-badge-{{ $listing->id }}" class="text-xs font-medium px-2 py-0.5 rounded-full {{ $listing->status === 'activ' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600' }}">
                                         {{ ucfirst($listing->status ?? 'activ') }}
@@ -127,88 +122,86 @@
 
                         <!-- Secțiune Statistici: Detaliate dacă e promovat vs Blocate dacă e nepromovat -->
                         <div class="p-6 bg-gray-50/60">
-                            @if($listing->is_featured)
-                                <!-- STATISTICI DETALIATE (UTILIZATOR PROMOVAT) -->
-                                <div>
-                                    <div class="flex items-center justify-between gap-2 mb-3">
-                                        <div class="flex items-center gap-2">
-                                            <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-700">Statistici Detaliate de Performanță (Anunț Promovat)</h4>
-                                        </div>
-                                        @if(!($isAdminPreview ?? false))
-                                            <button
-                                                type="button"
-                                                onclick="demoteListing({{ $listing->id }})"
-                                                class="px-3 py-1 rounded-lg text-xs font-semibold bg-white hover:bg-rose-50 text-gray-600 hover:text-rose-700 border border-gray-300 hover:border-rose-200 transition">
-                                                Anulează Promovarea
-                                            </button>
-                                        @endif
+                            <!-- STATISTICI DETALIATE (UTILIZATOR PROMOVAT) -->
+                            <div id="stats-unlocked-{{ $listing->id }}" class="{{ $listing->is_featured ? '' : 'hidden' }}">
+                                <div class="flex items-center justify-between gap-2 mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                        <h4 class="text-xs font-bold uppercase tracking-wider text-gray-700">Statistici Detaliate de Performanță (Anunț Promovat)</h4>
                                     </div>
-
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
-                                            <div class="text-xs text-gray-500 font-medium">Vizualizări totale</div>
-                                            <div class="text-2xl font-black text-indigo-600 mt-1">{{ $listing->views_count ?? 0 }}</div>
-                                            <div class="text-xs text-emerald-600 mt-1 font-semibold flex items-center gap-0.5">
-                                                ↑ +35% săptămâna aceasta
-                                            </div>
-                                        </div>
-
-                                        <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
-                                            <div class="text-xs text-gray-500 font-medium">Recenzii primite</div>
-                                            <div class="text-2xl font-black text-gray-800 mt-1">{{ $listing->reviews->count() }}</div>
-                                            <div class="text-xs text-gray-400 mt-1">de la clienți verificați</div>
-                                        </div>
-
-                                        <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
-                                            <div class="text-xs text-gray-500 font-medium">Rating Mediu</div>
-                                            <div class="text-2xl font-black text-amber-500 mt-1">
-                                                {{ $listing->reviews->avg('rating') ? number_format($listing->reviews->avg('rating'), 1) . ' ★' : '—' }}
-                                            </div>
-                                            <div class="text-xs text-gray-400 mt-1">Scor satisfacție</div>
-                                        </div>
-
-                                        <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
-                                            <div class="text-xs text-gray-500 font-medium">Poziționare Căutare</div>
-                                            <div class="text-2xl font-black text-emerald-600 mt-1">TOP 3</div>
-                                            <div class="text-xs text-emerald-600 mt-1 font-semibold">Prioritate maximă</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @else
-                                <!-- STATISTICI BLOCATE (UTILIZATOR NEPROMOVAT / NEPLĂTIT) -->
-                                <div class="bg-white rounded-xl border border-dashed border-gray-300 p-5 flex flex-col md:flex-row items-center justify-between gap-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center shrink-0">
-                                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <div class="flex items-center gap-2">
-                                                <h4 class="text-sm font-bold text-gray-800">Statistici Detaliate Blocate</h4>
-                                                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">Necesită Promovare</span>
-                                            </div>
-                                            <p class="text-xs text-gray-500 mt-0.5">
-                                                Statisticile detaliate (număr vizualizări, conversii, rapoarte audiență) nu sunt disponibile pentru anunțurile nepromovate. De asemenea, pe planul gratuit poți deține maximum 1 anunț.
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    @if($isAdminPreview ?? false)
-                                        <a href="{{ route('listings.preview.edit', $listing->id) }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow-sm transition shrink-0">
-                                            ★ Promovează Anunțul
-                                        </a>
-                                    @else
+                                    @if(!($isAdminPreview ?? false))
                                         <button
                                             type="button"
-                                            onclick="promoteListing({{ $listing->id }})"
-                                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow-sm transition shrink-0">
-                                            ★ Promovează Anunțul
+                                            onclick="demoteListing({{ $listing->id }})"
+                                            class="px-3 py-1 rounded-lg text-xs font-semibold bg-white hover:bg-rose-50 text-gray-600 hover:text-rose-700 border border-gray-300 hover:border-rose-200 transition">
+                                            Anulează Promovarea
                                         </button>
                                     @endif
                                 </div>
-                            @endif
+
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
+                                        <div class="text-xs text-gray-500 font-medium">Vizualizări totale</div>
+                                        <div class="text-2xl font-black text-indigo-600 mt-1">{{ $listing->views_count ?? 0 }}</div>
+                                        <div class="text-xs text-emerald-600 mt-1 font-semibold flex items-center gap-0.5">
+                                            ↑ +35% săptămâna aceasta
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
+                                        <div class="text-xs text-gray-500 font-medium">Recenzii primite</div>
+                                        <div class="text-2xl font-black text-gray-800 mt-1">{{ $listing->reviews->count() }}</div>
+                                        <div class="text-xs text-gray-400 mt-1">de la clienți verificați</div>
+                                    </div>
+
+                                    <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
+                                        <div class="text-xs text-gray-500 font-medium">Rating Mediu</div>
+                                        <div class="text-2xl font-black text-amber-500 mt-1">
+                                            {{ $listing->reviews->avg('rating') ? number_format($listing->reviews->avg('rating'), 1) . ' ★' : '—' }}
+                                        </div>
+                                        <div class="text-xs text-gray-400 mt-1">Scor satisfacție</div>
+                                    </div>
+
+                                    <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
+                                        <div class="text-xs text-gray-500 font-medium">Poziționare Căutare</div>
+                                        <div class="text-2xl font-black text-emerald-600 mt-1">TOP 3</div>
+                                        <div class="text-xs text-emerald-600 mt-1 font-semibold">Prioritate maximă</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- STATISTICI BLOCATE (UTILIZATOR NEPROMOVAT / NEPLĂTIT) -->
+                            <div id="stats-locked-{{ $listing->id }}" class="{{ $listing->is_featured ? 'hidden ' : '' }}bg-white rounded-xl border border-dashed border-gray-300 p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center shrink-0">
+                                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="text-sm font-bold text-gray-800">Statistici Detaliate Blocate</h4>
+                                            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">Necesită Promovare</span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-0.5">
+                                            Statisticile detaliate (număr vizualizări, conversii, rapoarte audiență) nu sunt disponibile pentru anunțurile nepromovate. De asemenea, pe planul gratuit poți deține maximum 1 anunț.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                @if($isAdminPreview ?? false)
+                                    <a href="{{ route('listings.preview.edit', $listing->id) }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow-sm transition shrink-0">
+                                        ★ Promovează Anunțul
+                                    </a>
+                                @else
+                                    <button
+                                        type="button"
+                                        onclick="promoteListing({{ $listing->id }})"
+                                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow-sm transition shrink-0">
+                                        ★ Promovează Anunțul
+                                    </button>
+                                @endif
+                            </div>
                         </div>
 
                     </div>
@@ -383,6 +376,39 @@
             }
         }
 
+        function syncListingPromotionUI(listingId, isFeatured, status) {
+            const featuredBadge = document.getElementById(`featured-badge-${listingId}`);
+            if (featuredBadge) {
+                featuredBadge.textContent = isFeatured ? '★ Promovat (Plătit)' : 'Nepromovat (Plan Gratuit)';
+                featuredBadge.className = isFeatured
+                    ? 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 flex items-center gap-1'
+                    : 'text-xs px-2.5 py-0.5 rounded-full font-semibold bg-gray-100 text-gray-600';
+            }
+
+            const unlocked = document.getElementById(`stats-unlocked-${listingId}`);
+            const locked = document.getElementById(`stats-locked-${listingId}`);
+            if (unlocked) unlocked.classList.toggle('hidden', !isFeatured);
+            if (locked) locked.classList.toggle('hidden', isFeatured);
+
+            if (status) {
+                const normalized = status.toLowerCase();
+                const statusBadge = document.getElementById(`status-badge-${listingId}`);
+                const toggleBtn = document.getElementById(`toggle-btn-${listingId}`);
+                if (statusBadge) {
+                    statusBadge.textContent = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+                    statusBadge.className = normalized === 'activ'
+                        ? 'text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700'
+                        : 'text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600';
+                }
+                if (toggleBtn) {
+                    toggleBtn.textContent = normalized === 'activ' ? 'Dezactivează' : 'Reactivează';
+                    toggleBtn.className = normalized === 'activ'
+                        ? 'px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                        : 'px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200';
+                }
+            }
+        }
+
         async function promoteListing(listingId) {
             const selectedPlan = loadedPlans.find(p => p.id === Number(selectedPlanId));
             if (selectedPlan && Number(selectedPlan.price) <= 0) {
@@ -414,8 +440,9 @@
                     return;
                 }
 
+                syncListingPromotionUI(listingId, Boolean(data.listing?.este_promovat), data.listing?.status);
+                window.dispatchEvent(new CustomEvent('notifications-updated'));
                 showApiFeedback(data.message || 'Anunțul a fost promovat!');
-                setTimeout(() => window.location.reload(), 600);
             } catch (error) {
                 showApiFeedback('Eroare de rețea la promovarea anunțului.', true);
             }
@@ -446,8 +473,8 @@
                     return;
                 }
 
+                syncListingPromotionUI(listingId, Boolean(data.listing?.este_promovat), data.listing?.status);
                 showApiFeedback(data.message || 'Promovarea a fost anulată.');
-                setTimeout(() => window.location.reload(), 600);
             } catch (error) {
                 showApiFeedback('Eroare de rețea la anularea promovării.', true);
             }
