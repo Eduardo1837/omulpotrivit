@@ -40,6 +40,14 @@ class UserAccessor
     }
 
     /**
+     * Găsește un utilizator după adresă de email.
+     */
+    public function getByEmail(string $email): ?User
+    {
+        return User::where('email', $email)->first();
+    }
+
+    /**
      * Returnează numărul total de utilizatori.
      */
     public function count(): int

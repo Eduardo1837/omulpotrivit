@@ -128,4 +128,39 @@ class UserService
 
         return $deleted;
     }
+
+    /**
+     * Înregistrează un utilizator nou prin API.
+     */
+    public function registerUser(array $data): User
+    {
+        $user = $this->userAccessor->create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'city' => $data['city'] ?? null,
+            'phone' => $data['phone'] ?? null,
+            'role' => 'user',
+        ]);
+
+        Log::info('User registered via API', ['user_id' => $user->id]);
+
+        return $user;
+    }
+
+    /**
+     * Autentifică un utilizator după email și parolă pentru API.
+     */
+    public function authenticateUser(string $email, string $password): ?User
+    {
+        $user = $this->userAccessor->getByEmail($email);
+        if (!$user || !Hash::check($password, $user->password)) {
+            Log::warning('Failed API login attempt', ['email' => $email]);
+            return null;
+        }
+
+        Log::info('User authenticated via API', ['user_id' => $user->id]);
+
+        return $user;
+    }
 }
