@@ -317,4 +317,34 @@ class AdminController extends Controller
 
         return redirect()->route('admin.plans.index')->with('success', 'Planul de promovare a fost creat cu succes.');
     }
+
+    public function editPlan($id)
+    {
+        $plan = $this->listingService->getPromotionPlanById($id);
+        if (!$plan) {
+            abort(404);
+        }
+
+        return view('admin.plans.edit', compact('plan'));
+    }
+
+    public function updatePlan(Request $request, $id)
+    {
+        $plan = $this->listingService->getPromotionPlanById($id);
+        if (!$plan) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'currency' => 'required|string|max:10',
+            'durationDays' => 'required|integer|min:0',
+            'maxItems' => 'nullable|integer|min:1',
+        ]);
+
+        $this->listingService->updatePromotionPlan($id, $validated);
+
+        return redirect()->route('admin.plans.index')->with('success', 'Planul de promovare a fost actualizat cu succes.');
+    }
 }

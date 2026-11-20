@@ -430,6 +430,14 @@ class ListingService
     }
 
     /**
+     * Găsește un plan de promovare după ID.
+     */
+    public function getPromotionPlanById(int|string $id): ?PromotionPlan
+    {
+        return $this->promotionPlanAccessor->getById($id);
+    }
+
+    /**
      * Creează un plan de promovare nou, invalidează cache-ul și înregistrează în log.
      */
     public function createPromotionPlan(array $data): PromotionPlan
@@ -444,6 +452,25 @@ class ListingService
         ]);
 
         return $plan;
+    }
+
+    /**
+     * Actualizează un plan de promovare existent, invalidează cache-ul și înregistrează în log.
+     */
+    public function updatePromotionPlan(int|string $id, array $data): bool
+    {
+        $updated = $this->promotionPlanAccessor->update($id, $data);
+
+        if ($updated) {
+            $this->invalidatePromotionPlansCache();
+
+            Log::info('Promotion plan updated', [
+                'plan_id' => $id,
+                'updated_fields' => array_keys($data),
+            ]);
+        }
+
+        return $updated;
     }
 
     /**

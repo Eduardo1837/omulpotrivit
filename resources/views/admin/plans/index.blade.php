@@ -45,7 +45,8 @@
                             <th class="py-3 px-4 uppercase font-semibold text-xs">Tip</th>
                             <th class="py-3 px-4 uppercase font-semibold text-xs">Preț</th>
                             <th class="py-3 px-4 uppercase font-semibold text-xs">Durată Promovare</th>
-                            <th class="py-3 px-4 uppercase font-semibold text-xs rounded-tr-lg">Limită Anunțuri Promovate</th>
+                            <th class="py-3 px-4 uppercase font-semibold text-xs">Limită Anunțuri Promovate</th>
+                            <th class="py-3 px-4 uppercase font-semibold text-xs rounded-tr-lg">Acțiuni</th>
                         </tr>
                     </thead>
                     <tbody class="text-gray-700 divide-y divide-gray-100">
@@ -82,10 +83,15 @@
                                         {{ $plan->maxItems }} {{ $plan->maxItems === 1 ? 'anunț' : 'anunțuri' }}
                                     @endif
                                 </td>
+                                <td class="py-3 px-4">
+                                    <a href="{{ route('admin.plans.edit', $plan->id) }}" class="bg-amber-500 hover:bg-amber-600 text-white py-1 px-3 rounded text-xs font-semibold transition">
+                                        Editează
+                                    </a>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="py-6 px-4 text-center text-sm text-gray-500">
+                                <td colspan="7" class="py-6 px-4 text-center text-sm text-gray-500">
                                     Nu există planuri de promovare configurate.
                                 </td>
                             </tr>

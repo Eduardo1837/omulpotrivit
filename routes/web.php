@@ -110,6 +110,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/plans', [AdminController::class, 'plansIndex'])->name('plans.index');
         Route::get('/plans/create', [AdminController::class, 'createPlan'])->name('plans.create');
         Route::post('/plans', [AdminController::class, 'storePlan'])->name('plans.store');
+        Route::get('/plans/{id}/edit', [AdminController::class, 'editPlan'])->name('plans.edit');
+        Route::put('/plans/{id}', [AdminController::class, 'updatePlan'])->name('plans.update');
     });
         
 });
