@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ListingController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReviewController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,4 +34,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/listings/{id}/reviews', [ReviewController::class, 'store'])->whereNumber('id');
     Route::put('/reviews/{id}', [ReviewController::class, 'update'])->whereNumber('id');
     Route::delete('/reviews/{id}', [ReviewController::class, 'destroy'])->whereNumber('id');
+
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead'])->whereNumber('id');
 });
