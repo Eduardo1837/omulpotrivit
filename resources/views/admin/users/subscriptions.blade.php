@@ -41,7 +41,8 @@
                         @forelse($promotions as $promotion)
                             @php
                                 $plan = $promotion->plan;
-                                $isPaid = $plan && (float) $plan->price > 0;
+                                $payment = $promotion->payment->first();
+                                $isPaid = $payment ? ((float) $payment->amount > 0) : ($plan && (float) $plan->price > 0);
                                 $listing = $promotion->listing;
                             @endphp
                             <tr class="hover:bg-gray-50 transition">
@@ -57,7 +58,14 @@
                                     </div>
                                 </td>
                                 <td class="py-3 px-4 text-sm font-semibold text-gray-800">
-                                    {{ $plan ? number_format((float) $plan->price, 2) . ' ' . ($plan->currency ?? 'RON') : '-' }}
+                                    @if($payment)
+                                        <div>{{ number_format((float) $payment->amount, 2) }} {{ $payment->currency ?? 'RON' }}</div>
+                                        <div class="text-[11px] font-medium text-emerald-700">{{ $payment->status }} ({{ $payment->method ?? 'card' }})</div>
+                                    @elseif($plan)
+                                        {{ number_format((float) $plan->price, 2) }} {{ $plan->currency ?? 'RON' }}
+                                    @else
+                                        -
+                                    @endif
                                 </td>
                                 <td class="py-3 px-4 text-sm">
                                     @if($listing)

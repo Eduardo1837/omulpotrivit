@@ -59,6 +59,20 @@ class ListingPromotionEventTest extends TestCase
             'listing_id' => $listing->id,
             'eventType' => 'promovare',
         ]);
+
+        $this->assertDatabaseHas('promotions', [
+            'user_id' => $user->id,
+            'listing_id' => $listing->id,
+            'plan_id' => $plan->id,
+            'status' => 'ACTIVE',
+        ]);
+
+        $this->assertDatabaseHas('payments', [
+            'user_id' => $user->id,
+            'amount' => 29.00,
+            'currency' => 'RON',
+            'status' => 'COMPLETED',
+        ]);
     }
 
     public function test_switching_to_free_plan_does_not_dispatch_listing_promoted_event(): void

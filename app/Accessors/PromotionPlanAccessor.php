@@ -2,6 +2,7 @@
 
 namespace App\Accessors;
 
+use App\Models\Payment;
 use App\Models\Promotion;
 use App\Models\PromotionPlan;
 use Illuminate\Database\Eloquent\Collection;
@@ -81,11 +82,19 @@ class PromotionPlanAccessor
     }
 
     /**
-     * Înregistrează o promovare activă pentru utilizator și anunț.
+     * Înregistrează o promovare activă pentru utilizator și anunț, închizând promovările anterioare
+     * și salvând tranzacția în payments pentru planurile plătite.
      */
     public function recordUserPromotion(int $userId, int|string $listingId, PromotionPlan $plan): Promotion
     {
-        return Promotion::create([
+        Promotion::where('listing_id', $listingId)
+            ->where('status', 'ACTIVE')
+            ->update([
+                'status' => 'REPLACED',
+                'endsAt' => now(),
+            ]);
+
+        $promotion = Promotion::create([
             'plan_id' => $plan->id,
             'user_id' => $userId,
             'listing_id' => $listingId,
@@ -93,6 +102,20 @@ class PromotionPlanAccessor
             'endsAt' => $plan->durationDays > 0 ? now()->addDays($plan->durationDays) : null,
             'status' => 'ACTIVE',
         ]);
+
+        if ((float) $plan->price > 0) {
+            Payment::create([
+                'user_id' => $userId,
+                'promotion_id' => $promotion->id,
+                'amount' => $plan->price,
+                'currency' => $plan->currency ?? 'RON',
+                'method' => 'card',
+                'status' => 'COMPLETED',
+                'paidAt' => now(),
+            ]);
+        }
+
+        return $promotion;
     }
 
     /**
@@ -113,7 +136,7 @@ class PromotionPlanAccessor
      */
     public function getUserPromotionsHistory(int|string $userId): Collection
     {
-        return Promotion::with(['plan', 'listing'])
+        return Promotion::with(['plan', 'listing', 'payment'])
             ->where('user_id', $userId)
             ->latest('id')
             ->get();
