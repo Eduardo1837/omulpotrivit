@@ -33,8 +33,21 @@
                 </div>
             @endif
 
+            <!-- Filtrare client-side (REST API) -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-4 flex flex-col md:flex-row gap-4 items-center">
+                <div class="w-full md:flex-1">
+                    <input type="text" id="search-filter" placeholder="Caută după titlu, descriere sau oraș..."
+                           class="w-full border-gray-300 rounded-lg shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div class="w-full md:w-64">
+                    <select id="category-filter" class="w-full border-gray-300 rounded-lg shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="">Toate categoriile</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- Grid de Anunțuri -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div id="listings-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @forelse($listings as $item)
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden hover:shadow-md transition flex flex-col justify-between">
                         <div class="p-6">
@@ -101,4 +114,120 @@
 
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const grid = document.getElementById('listings-grid');
+            const searchInput = document.getElementById('search-filter');
+            const categorySelect = document.getElementById('category-filter');
+            const isAuthenticated = {{ auth()->check() ? 'true' : 'false' }};
+            let allListings = [];
+
+            const escapeHtml = (value) => String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+
+            const renderListings = () => {
+                if (!grid) return;
+                const query = (searchInput?.value || '').trim().toLowerCase();
+                const categoryId = categorySelect?.value || '';
+
+                const filtered = allListings.filter((item) => {
+                    const matchesCategory = !categoryId || String(item.category_id) === String(categoryId);
+                    const haystack = `${item.titlu} ${item.descriere} ${item.oras} ${item.categorie}`.toLowerCase();
+                    const matchesQuery = !query || haystack.includes(query);
+                    return matchesCategory && matchesQuery;
+                });
+
+                if (filtered.length === 0) {
+                    const cta = isAuthenticated
+                        ? '<a href="/listings/create" class="mt-4 inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">Adaugă Primul Anunț</a>'
+                        : '';
+                    grid.innerHTML = `
+                        <div class="col-span-full bg-white rounded-xl p-12 text-center border border-gray-200">
+                            <h4 class="text-lg font-semibold text-gray-800">Nu a fost găsit niciun anunț</h4>
+                            <p class="text-sm text-gray-500 mt-1">Încearcă alte criterii de căutare sau publică un anunț nou.</p>
+                            ${cta}
+                        </div>
+                    `;
+                    return;
+                }
+
+                grid.innerHTML = filtered.map((item) => `
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden hover:shadow-md transition flex flex-col justify-between">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between gap-2 mb-3">
+                                <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">
+                                    ${escapeHtml(item.categorie)}
+                                </span>
+                                ${item.este_promovat ? '<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">★ Promovat</span>' : ''}
+                            </div>
+
+                            <h3 class="text-lg font-bold text-gray-900 line-clamp-1 hover:text-indigo-600 transition">
+                                <a href="/listings/${encodeURIComponent(item.id)}">${escapeHtml(item.titlu)}</a>
+                            </h3>
+
+                            <p class="text-sm text-gray-600 mt-2 line-clamp-3 leading-relaxed">${escapeHtml(item.descriere)}</p>
+
+                            <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    ${escapeHtml(item.oras)}
+                                </span>
+                                <span class="font-semibold text-gray-700 capitalize">${escapeHtml(item.tip_pret)}</span>
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                            <div>
+                                <span class="text-xs text-gray-400 block font-medium">Preț estimat</span>
+                                <span class="text-lg font-black text-indigo-600">${escapeHtml(item.pret_afisat)}</span>
+                            </div>
+                            <a href="/listings/${encodeURIComponent(item.id)}" class="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 shadow-sm transition">
+                                Detalii &rarr;
+                            </a>
+                        </div>
+                    </div>
+                `).join('');
+            };
+
+            try {
+                const [listingsRes, categoriesRes] = await Promise.all([
+                    fetch('/api/listings', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }),
+                    fetch('/api/categories', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }),
+                ]);
+
+                if (categoriesRes.ok && categorySelect) {
+                    const categories = await categoriesRes.json();
+                    const params = new URLSearchParams(window.location.search);
+                    const initialCat = params.get('category_id') || '';
+                    categories.forEach((cat) => {
+                        const opt = document.createElement('option');
+                        opt.value = cat.id;
+                        opt.textContent = cat.name;
+                        if (String(cat.id) === String(initialCat)) {
+                            opt.selected = true;
+                        }
+                        categorySelect.appendChild(opt);
+                    });
+                }
+
+                if (listingsRes.ok) {
+                    allListings = await listingsRes.json();
+                    renderListings();
+                }
+
+                searchInput?.addEventListener('input', renderListings);
+                categorySelect?.addEventListener('change', renderListings);
+            } catch (e) {
+                // Păstrează conținutul redat inițial pe server dacă API-ul nu răspunde
+            }
+        });
+    </script>
 </x-app-layout>
