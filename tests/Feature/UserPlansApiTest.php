@@ -277,4 +277,214 @@ class UserPlansApiTest extends TestCase
             ])
             ->assertRedirect(route('listings.my'));
     }
+
+    public function test_api_home_and_categories_return_active_data(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+        $category = Category::create(['name' => 'IT & Web', 'description' => 'Dezvoltare web']);
+
+        Listing::create([
+            'provider_id' => $user->id,
+            'category_id' => $category->id,
+            'title' => 'Site Web Rapid',
+            'description' => 'Descriere activă',
+            'price' => 500,
+            'priceType' => 'fix',
+            'city' => 'Suceava',
+            'status' => 'activ',
+            'is_featured' => true,
+        ]);
+
+        Listing::create([
+            'provider_id' => $user->id,
+            'category_id' => $category->id,
+            'title' => 'Anunț Inactiv',
+            'description' => 'Ascuns',
+            'price' => 100,
+            'priceType' => 'fix',
+            'city' => 'Suceava',
+            'status' => 'inactiv',
+            'is_featured' => false,
+        ]);
+
+        $this->getJson('/api/home')
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'listings')
+            ->assertJsonPath('listings.0.titlu', 'Site Web Rapid')
+            ->assertJsonFragment(['name' => 'IT & Web']);
+
+        $this->getJson('/api/categories')
+            ->assertStatus(200)
+            ->assertJsonFragment(['name' => 'IT & Web']);
+    }
+
+    public function test_api_create_update_and_show_own_listing_with_ownership_checks(): void
+    {
+        $owner = User::factory()->create(['role' => 'user']);
+        $otherUser = User::factory()->create(['role' => 'user']);
+        $category = Category::create(['name' => 'Design', 'description' => 'Grafică']);
+
+        // Unauthenticated create is rejected
+        $this->postJson('/api/listings', [
+            'title' => 'Test',
+            'description' => 'Desc',
+            'price' => 100,
+            'city' => 'Iași',
+            'category_id' => $category->id,
+        ])->assertStatus(401);
+
+        // Owner creates listing via API
+        $createRes = $this->actingAs($owner)->postJson('/api/listings', [
+            'title' => 'Logo Design',
+            'description' => 'Creare logo profesional',
+            'price' => 250,
+            'priceType' => 'fix',
+            'city' => 'Iași',
+            'category_id' => $category->id,
+            'is_featured' => false,
+        ])->assertStatus(201)
+            ->assertJsonPath('titlu', 'Logo Design');
+
+        $listingId = $createRes->json('id');
+
+        // Owner can fetch my-listings and own listing
+        $this->actingAs($owner)
+            ->getJson('/api/my-listings')
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'listings')
+            ->assertJsonPath('listings.0.id', $listingId);
+
+        $this->actingAs($owner)
+            ->getJson("/api/listings/{$listingId}/own")
+            ->assertStatus(200)
+            ->assertJsonPath('titlu', 'Logo Design');
+
+        // Non-owner cannot view own edit payload or update
+        $this->actingAs($otherUser)
+            ->getJson("/api/listings/{$listingId}/own")
+            ->assertStatus(403);
+
+        $this->actingAs($otherUser)
+            ->putJson("/api/listings/{$listingId}", ['title' => 'Hack'])
+            ->assertStatus(403);
+
+        // Owner can update via API
+        $this->actingAs($owner)
+            ->putJson("/api/listings/{$listingId}", [
+                'title' => 'Logo Design Premium',
+                'price' => 300,
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('titlu', 'Logo Design Premium')
+            ->assertJsonPath('pret', 300);
+    }
+
+    public function test_api_reviews_crud_for_listing(): void
+    {
+        $provider = User::factory()->create(['role' => 'user']);
+        $reviewer = User::factory()->create(['role' => 'user']);
+        $otherUser = User::factory()->create(['role' => 'user']);
+        $category = Category::create(['name' => 'Instalații', 'description' => 'Servicii casă']);
+
+        $listing = Listing::create([
+            'provider_id' => $provider->id,
+            'category_id' => $category->id,
+            'title' => 'Reparații Sanitare',
+            'description' => 'Intervenții rapide',
+            'price' => 150,
+            'priceType' => 'fix',
+            'city' => 'Suceava',
+            'status' => 'activ',
+        ]);
+
+        // Unauthenticated review post rejected
+        $this->postJson("/api/listings/{$listing->id}/reviews", [
+            'rating' => 5,
+            'comment' => 'Super',
+        ])->assertStatus(401);
+
+        // Reviewer creates review
+        $createRes = $this->actingAs($reviewer)
+            ->postJson("/api/listings/{$listing->id}/reviews", [
+                'rating' => 5,
+                'comment' => 'Serviciu excelent!',
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('review.comment', 'Serviciu excelent!');
+
+        $reviewId = $createRes->json('review.id');
+
+        // Duplicate review by same user is blocked
+        $this->actingAs($reviewer)
+            ->postJson("/api/listings/{$listing->id}/reviews", [
+                'rating' => 4,
+                'comment' => 'Încă o recenzie',
+            ])
+            ->assertStatus(422);
+
+        // Show listing API includes the review
+        $this->actingAs($reviewer)
+            ->getJson("/api/listings/{$listing->id}")
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'reviews')
+            ->assertJsonPath('user_has_review', true);
+
+        // Other user cannot edit or delete someone else's review
+        $this->actingAs($otherUser)
+            ->putJson("/api/reviews/{$reviewId}", ['rating' => 1, 'comment' => 'Spam'])
+            ->assertStatus(403);
+
+        $this->actingAs($otherUser)
+            ->deleteJson("/api/reviews/{$reviewId}")
+            ->assertStatus(403);
+
+        // Author can update and delete their own review
+        $this->actingAs($reviewer)
+            ->putJson("/api/reviews/{$reviewId}", [
+                'rating' => 4,
+                'comment' => 'Foarte bun!',
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('review.comment', 'Foarte bun!');
+
+        $this->actingAs($reviewer)
+            ->deleteJson("/api/reviews/{$reviewId}")
+            ->assertStatus(200);
+
+        $this->assertDatabaseMissing('reviews', ['id' => $reviewId]);
+    }
+
+    public function test_api_auth_register_login_and_logout(): void
+    {
+        $registerRes = $this->postJson('/api/register', [
+            'name' => 'Client API',
+            'email' => 'client.api@example.com',
+            'password' => 'parola1234',
+            'password_confirmation' => 'parola1234',
+            'city' => 'Cluj-Napoca',
+        ])->assertStatus(201)
+            ->assertJsonStructure(['token', 'user']);
+
+        $token = $registerRes->json('token');
+        $this->assertNotEmpty($token);
+
+        $this->withToken($token)
+            ->getJson('/api/user')
+            ->assertStatus(200)
+            ->assertJsonPath('email', 'client.api@example.com');
+
+        $loginRes = $this->postJson('/api/login', [
+            'email' => 'client.api@example.com',
+            'password' => 'parola1234',
+        ])->assertStatus(200)
+            ->assertJsonStructure(['token', 'user']);
+
+        $loginToken = $loginRes->json('token');
+
+        $this->withToken($loginToken)
+            ->postJson('/api/logout')
+            ->assertStatus(200);
+
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+    }
 }

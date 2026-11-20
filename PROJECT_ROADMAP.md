@@ -26,7 +26,7 @@
 | If you need to... | Go directly to | Notes / Key Symbols |
 | :--- | :--- | :--- |
 | Add or modify public/auth/admin web routes | `routes/web.php` | Public `/`, `/auth-required`; `auth` group; `admin` prefix group |
-| Add or modify REST API endpoints | `routes/api.php`, `app/Http/Controllers/Api/ListingController.php` | Prefixed with `/api` via `bootstrap/app.php` |
+| Add or modify REST API endpoints | `routes/api.php`, `app/Http/Controllers/Api/*` | Prefixed with `/api` via `bootstrap/app.php` (`AuthController`, `ListingController`, `ReviewController`) |
 | Modify auth routes (login/register/reset/verify) | `routes/auth.php`, `app/Http/Controllers/Auth/*` | Standard Laravel Breeze controllers |
 | Change unauthenticated guest redirect target | `bootstrap/app.php` | `redirectGuestsTo(fn () => route('auth.required'))` |
 | Modify listing browsing, creation, edit, or free-plan limits | `app/Http/Controllers/ListingController.php` | `index()`, `details()`, `myListings()`, `canUserCreateListing()`, `create()`, `store()`, `edit()`, `update()` |
@@ -53,19 +53,21 @@
   - `ListingAccessor.php` — Eager-loads and manages CRUD, active-only/featured-first queries, `countAll()`, user listing queries, and logical deletion (`softDelete()` setting `status = 'inactiv'`).
   - `PromotionPlanAccessor.php` — Manages read/CRUD queries for `PromotionPlan`.
   - `ReviewAccessor.php` — Manages visible (`is_hidden = false`) review queries and logical hiding (`setHidden()`, `toggleHidden()`).
-  - `UserAccessor.php` — Manages `User` queries (`getAllWithListings()`, `getAll()`, `getById()`, `count()`) and CRUD.
+  - `UserAccessor.php` — Manages `User` queries (`getAllWithListings()`, `getAll()`, `getById()`, `getByEmail()`, `count()`) and CRUD.
 - **`app/Services/`** (Business Logic, Cache, Logging & Logical Deletion)
   - `ListingService.php` — Injects `ListingAccessor` & `PromotionPlanAccessor`; caches home listings, active listings, and promotion plans (`Cache::remember` / `Cache::forget`); enforces free-plan quota (`canUserCreateListing`), promotion, logical deletion (`status = 'inactiv'`), `countAllListings()`, and logging (`Log::info` / `Log::warning`).
   - `CategoryService.php` — Injects `CategoryAccessor`; caches categories and active-listing categories with invalidation and logging.
   - `ReviewService.php` — Injects `ReviewAccessor`; filters `is_hidden = true` from public queries and logs review creation/moderation/logical hiding.
-  - `UserService.php` — Injects `UserAccessor`; handles admin user creation (with password hashing), updates, self-deletion guard, and logging.
+  - `UserService.php` — Injects `UserAccessor`; handles admin user creation (with password hashing), updates, self-deletion guard, API registration/authentication, and logging.
 - **`app/Http/Controllers/`**
   - `Controller.php` — Base abstract controller.
   - `AdminController.php` — Admin dashboard stats, user management, listing management, and review moderation (`toggleReviewVisibility`, `destroyReview`).
   - `ListingController.php` — Web listing index/details (also returns `ListingResource` if `wantsJson()`), `myListings`, `create`/`store`, `edit`/`update`, and free-plan limit enforcement.
   - `ProfileController.php` — Breeze profile edit, update, and account deletion.
   - `ReviewController.php` — Paginated review listing (`index`) and review creation (`create`, `store`).
-  - **`Api/ListingController.php`** — JSON REST API controller for `GET /api/listings`, `GET /api/listings/{id}`, `POST /api/listings`, `PUT /api/listings/{id}`.
+  - **`Api/AuthController.php`** — JSON REST API controller for Sanctum authentication (`POST /api/register`, `POST /api/login`, `POST /api/logout`, `GET /api/user`).
+  - **`Api/ListingController.php`** — JSON REST API controller for `/api/home`, `/api/categories`, `/api/my-listings`, `/api/listings`, `/api/listings/{id}`, `/api/listings/{id}/own`, `/api/plans`, `/api/listings/{id}/promote`, `/api/listings/{id}/toggle-status`, and `DELETE /api/listings/{id}`.
+  - **`Api/ReviewController.php`** — JSON REST API controller for `GET /api/reviews`, `POST /api/listings/{id}/reviews`, `PUT /api/reviews/{id}`, and `DELETE /api/reviews/{id}`.
   - **`Auth/*`** — Standard Laravel Breeze auth controllers: `AuthenticatedSessionController.php`, `ConfirmablePasswordController.php`, `EmailVerificationNotificationController.php`, `EmailVerificationPromptController.php`, `NewPasswordController.php`, `PasswordController.php`, `PasswordResetLinkController.php`, `RegisteredUserController.php`, `VerifyEmailController.php`.
 - **`app/Http/Middleware/`**
   - `AdminMiddleware.php` — Allows request only if `auth()->check() && auth()->user()->role === 'admin'`; otherwise aborts with `403`.
@@ -244,15 +246,26 @@ erDiagram
 
 | Method | URI | Middleware | Handler | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/user` | `auth:sanctum` | Closure | Returns `$request->user()` |
+| `POST` | `/api/register` | *None* | `Api\AuthController@register` | Registers user via `UserService` & issues Sanctum token (`201`) |
+| `POST` | `/api/login` | *None* | `Api\AuthController@login` | Authenticates user via `UserService` & issues Sanctum token (`200` / `401`) |
+| `POST` | `/api/logout` | `auth:sanctum` | `Api\AuthController@logout` | Revokes current access token (`200`) |
+| `GET` | `/api/user` | `auth:sanctum` | `Api\AuthController@me` | Returns `$request->user()` |
+| `GET` | `/api/home` | *None* | `Api\ListingController@home` | Returns featured home listings + active categories |
+| `GET` | `/api/categories` | *None* | `Api\ListingController@categories` | Returns all cached categories |
 | `GET` | `/api/listings` | *None* | `Api\ListingController@index` | Returns `200` with `ListingResource::collection` |
-| `GET` | `/api/listings/{id}` | *None* | `Api\ListingController@show` | Returns `200` with `ListingResource`, or `404` JSON |
-| `POST` | `/api/listings` | *None* | `Api\ListingController@store` | Validates & creates via `ListingAccessor`; returns `201` JSON |
-| `PUT` | `/api/listings/{id}` | *None* | `Api\ListingController@update` | Partial (`sometimes\|required`) update via `ListingAccessor`; returns `200` or `404` JSON |
+| `GET` | `/api/listings/{id}` | *None* | `Api\ListingController@show` | Returns `200` with `ListingResource` + visible `reviews`, or `404` JSON |
 | `GET` | `/api/plans` | *None* | `Api\ListingController@plans` | Returns cached `PromotionPlan` list (`200` JSON) |
+| `GET` | `/api/reviews` | *None* | `Api\ReviewController@index` | Returns paginated visible reviews (`200` JSON) |
+| `GET` | `/api/my-listings` | `auth:sanctum` | `Api\ListingController@myListings` | Returns authenticated user's listings, `can_create_more`, `active_plan_id`, and plans |
+| `GET` | `/api/listings/{id}/own` | `auth:sanctum` | `Api\ListingController@showOwn` | Returns owner's listing (including inactive) for edit form; enforces ownership (`403`) |
+| `POST` | `/api/listings` | `auth:sanctum` | `Api\ListingController@store` | Validates, checks quota, & creates via `ListingService`; returns `201` JSON (`403` for admin/quota) |
+| `PUT` | `/api/listings/{id}` | `auth:sanctum` | `Api\ListingController@update` | Partial (`sometimes\|required`) update via `ListingService` with ownership check; returns `200`, `403`, or `404` |
 | `POST` | `/api/listings/{id}/promote` | `auth:sanctum` | `Api\ListingController@promote` | Promotes owner's listing via `ListingService::promoteListing()`; returns `200`, `403`, `404`, or `422` |
 | `PATCH` | `/api/listings/{id}/toggle-status` | `auth:sanctum` | `Api\ListingController@toggleStatus` | Toggles owner's listing between `'activ'` and `'inactiv'` via `ListingService::toggleListingStatus()` |
-| `DELETE` | `/api/listings/{id}` | `auth:sanctum` | `Api\ListingController@destroy` | Logical deletion (`status = 'inactiv'`) of owner's listing via `ListingService::deleteListing()` |
+| `DELETE` | `/api/listings/{id}` | `auth:sanctum` | `Api\ListingController@destroy` | Permanent (`confirm_delete=delete`) or logical deletion (`status = 'inactiv'`) of owner's listing |
+| `POST` | `/api/listings/{id}/reviews` | `auth:sanctum` | `Api\ReviewController@store` | Creates review for active listing via `ReviewService` (`201` / `422` duplicate) |
+| `PUT` | `/api/reviews/{id}` | `auth:sanctum` | `Api\ReviewController@update` | Updates author's own review (`200` / `403`) |
+| `DELETE` | `/api/reviews/{id}` | `auth:sanctum` | `Api\ReviewController@destroy` | Deletes author's own review (`200` / `403`) |
 
 ---
 
@@ -287,7 +300,7 @@ Transforms a `Listing` Eloquent model into read-only display properties for Blad
 
 ### API Resource / DTO (`app/Http/Resources/ListingResource.php`)
 Transforms a `Listing` model into a localized Romanian JSON payload:
-- Keys: `id`, `titlu`, `descriere`, `pret_afisat` (`"X.XX RON"`), `tip_pret`, `oras`, `categorie`, `este_promovat` (bool), `status`. Excludes internal columns (`provider_id`, timestamps).
+- Keys: `id`, `titlu`, `descriere`, `pret`, `pret_afisat` (`"X.XX RON"`), `tip_pret`, `tip_pret_raw`, `oras`, `category_id`, `categorie`, `provider_id`, `este_promovat` (bool), `status`, `views_count`.
 
 ### Key Business Rules
 1. **Free vs. Promoted Listing Quota (`ListingController::canUserCreateListing()`):**
@@ -312,17 +325,17 @@ Transforms a `Listing` model into a localized Romanian JSON payload:
 
 | View Path | Layout / Styling | Controller / Route |
 | :--- | :--- | :--- |
-| `welcome.blade.php` | Standalone Tailwind (`@vite`) | `GET /` (`home`) |
+| `welcome.blade.php` | Standalone Tailwind (`@vite`) + client-side `fetch('/api/home')` | `GET /` (`home`) |
 | `auth/auth-required.blade.php` | `<x-guest-layout>` (Tailwind) | `GET /auth-required` (`auth.required`) |
 | `auth/{login,register,forgot-password,reset-password,confirm-password,verify-email}.blade.php` | `<x-guest-layout>` (Tailwind) | `routes/auth.php` |
 | `profile/edit.blade.php` + `profile/partials/*` | `<x-app-layout>` (Tailwind) | `ProfileController@edit` |
-| `listings/index.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@index` |
-| `listings/details.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@details` |
-| `listings/my-listings.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@myListings` |
-| `listings/create.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@create` |
-| `listings/edit.blade.php` | `<x-app-layout>` (Tailwind) | `ListingController@edit` |
-| `reviews/index.blade.php` | **Standalone HTML + inline `<style>`** | `ReviewController@index` |
-| `reviews/create.blade.php` | **Standalone HTML + inline `<style>`** | `ReviewController@create` |
+| `listings/index.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/listings', '/api/categories')` | `ListingController@index` |
+| `listings/details.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/listings/{id}', '/api/reviews')` | `ListingController@details` |
+| `listings/my-listings.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/plans', '/api/listings/*')` | `ListingController@myListings` |
+| `listings/create.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/categories', 'POST /api/listings')` | `ListingController@create` |
+| `listings/edit.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/listings/{id}/own', 'PUT /api/listings/{id}')` | `ListingController@edit` |
+| `reviews/index.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/reviews')` | `ReviewController@index` |
+| `reviews/create.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/listings', 'POST /api/listings/{id}/reviews')` | `ReviewController@create` |
 | `laborator.blade.php` | **Standalone HTML + inline `<style>`** | `GET /laborator` |
 | `admin/dashboard.blade.php` | `<x-app-layout>` + `<x-admin-nav>` | `AdminController@dashboard` |
 | `admin/users/index.blade.php`, `admin/users/create.blade.php`, `admin/users/edit.blade.php` | `<x-app-layout>` + `<x-admin-nav>` | `AdminController@index`, `createUser`, `edit` |
@@ -372,8 +385,9 @@ npm run build
 4. **Route Ordering & `whereNumber('id')` Constraint (`routes/web.php`):**
    - `GET /listings/{id}` is declared at line 58 *before* `GET /listings/create` at line 72, relying on `->whereNumber('id')` so `/listings/create` is not captured as `{id}`. Keep `->whereNumber('id')` intact (or move `/listings/create` above `/listings/{id}`) when refactoring routes.
    - Note HTTP methods for updates differ across layers: web user edit uses `POST /listings/{id}/edit`, admin uses `PUT /admin/listings/{id}`, and API uses `PUT /api/listings/{id}`.
-5. **Unauthenticated `/api/listings` Endpoints (`routes/api.php`):**
-   - Only `GET /api/user` uses `auth:sanctum`. `GET/POST/PUT /api/listings` are currently unprotected, and `Api\ListingController@store` falls back to `auth()->id() ?? 1`.
+5. **Hybrid MVC (Admin) + Client-Side API (User Section):**
+   - `/admin/*` routes remain 100% server-side MVC (`AdminController` + Blade forms).
+   - Normal user sections (`welcome`, `listings/*`, `reviews/*`) render Tailwind Blade shells and interact client-side via `fetch()` against Sanctum-protected `/api/*` endpoints (`Api\AuthController`, `Api\ListingController`, `Api\ReviewController`). `POST /api/listings` and `PUT /api/listings/{id}` enforce `auth:sanctum` and ownership/role checks.
 6. **Migration `down()` Table Name Mismatches:**
    - `2026_10_12_100647_create_service_requests_table.php` creates table `requests`, but `down()` calls `Schema::dropIfExists('service_requests')`.
    - `2026_10_12_102151_create_app_notifications_table.php` creates table `notifications`, but `down()` calls `Schema::dropIfExists('app_notifications')`.
