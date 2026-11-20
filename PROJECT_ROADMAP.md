@@ -110,7 +110,7 @@
 - `TestCase.php`, `Unit/ExampleTest.php`, `Feature/ExampleTest.php`, `Feature/ProfileTest.php`, `Feature/Auth/*` (Breeze default test suite).
 
 ### Root Configuration & Docs
-- `composer.json`, `package.json`, `vite.config.js`, `tailwind.config.js`, `postcss.config.js`, `phpunit.xml`, `.env.example`, `PASI_GENERARE_MODELE_ORM.md`, `README.md`.
+- `composer.json`, `package.json`, `vite.config.js`, `tailwind.config.js`, `postcss.config.js`, `phpunit.xml`, `.env.example`, `Dockerfile`, `.dockerignore`, `docker/entrypoint.sh`, `PASI_GENERARE_MODELE_ORM.md`, `README.md`.
 
 ---
 
