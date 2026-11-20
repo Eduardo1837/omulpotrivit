@@ -288,4 +288,33 @@ class AdminController extends Controller
 
         return redirect()->route('admin.categories.index')->with('success', 'Category deleted successfully.');
     }
+
+    // --- PROMOTION PLANS ---
+
+    public function plansIndex()
+    {
+        $plans = $this->listingService->getPromotionPlans();
+
+        return view('admin.plans.index', compact('plans'));
+    }
+
+    public function createPlan()
+    {
+        return view('admin.plans.create');
+    }
+
+    public function storePlan(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'currency' => 'required|string|max:10',
+            'durationDays' => 'required|integer|min:0',
+            'maxItems' => 'nullable|integer|min:1',
+        ]);
+
+        $this->listingService->createPromotionPlan($validated);
+
+        return redirect()->route('admin.plans.index')->with('success', 'Planul de promovare a fost creat cu succes.');
+    }
 }

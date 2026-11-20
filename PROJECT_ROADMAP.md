@@ -246,6 +246,7 @@ erDiagram
 | `GET` | `/admin/listings/{id}/reviews` | `admin.listings.reviews` | `AdminController@listingReviews` | Lists reviews for listing -> `admin/listings/reviews.blade.php` |
 | `PATCH` | `/admin/reviews/{id}/toggle-visibility` | `admin.reviews.toggle` | `AdminController@toggleReviewVisibility` | Toggles `is_hidden` boolean |
 | `DELETE` | `/admin/reviews/{id}` | `admin.reviews.destroy` | `AdminController@destroyReview` | Deletes review |
+| `GET` | `/admin/plans` | `admin.plans.index` | `AdminController@plansIndex` | Lists platform promotion plans via `ListingService::getPromotionPlans()` -> `admin/plans/index.blade.php` |
 
 ### 5.4 Auth Routes (`routes/auth.php`)
 - **Guest (`middleware('guest')`):** `register` (`GET`/`POST`), `login` (`GET`/`POST`), `forgot-password` (`GET`/`POST`, `password.request` / `password.email`), `reset-password/{token}` (`GET`, `password.reset`), `reset-password` (`POST`, `password.store`).

@@ -105,6 +105,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/listings/{id}/reviews', [AdminController::class, 'listingReviews'])->name('listings.reviews');
         Route::patch('/reviews/{id}/toggle-visibility', [AdminController::class, 'toggleReviewVisibility'])->name('reviews.toggle');
         Route::delete('/reviews/{id}', [AdminController::class, 'destroyReview'])->name('reviews.destroy');
+
+        // Promotion Plans
+        Route::get('/plans', [AdminController::class, 'plansIndex'])->name('plans.index');
+        Route::get('/plans/create', [AdminController::class, 'createPlan'])->name('plans.create');
+        Route::post('/plans', [AdminController::class, 'storePlan'])->name('plans.store');
     });
         
 });

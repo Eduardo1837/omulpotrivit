@@ -6,6 +6,7 @@ use App\Accessors\ListingAccessor;
 use App\Accessors\PromotionPlanAccessor;
 use App\Events\ListingPromoted;
 use App\Models\Listing;
+use App\Models\PromotionPlan;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Cache;
@@ -426,6 +427,23 @@ class ListingService
     {
         Cache::forget(self::CACHE_KEY_HOME_LISTINGS);
         Cache::forget(self::CACHE_KEY_ACTIVE_LISTINGS);
+    }
+
+    /**
+     * Creează un plan de promovare nou, invalidează cache-ul și înregistrează în log.
+     */
+    public function createPromotionPlan(array $data): PromotionPlan
+    {
+        $plan = $this->promotionPlanAccessor->create($data);
+        $this->invalidatePromotionPlansCache();
+
+        Log::info('Promotion plan created', [
+            'plan_id' => $plan->id,
+            'name' => $plan->name,
+            'price' => $plan->price,
+        ]);
+
+        return $plan;
     }
 
     /**
