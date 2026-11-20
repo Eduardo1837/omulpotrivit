@@ -39,8 +39,69 @@
                 </div>
             </div>
 
-            <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
+            <!-- Notifications Bell & Settings Dropdown -->
+            <div class="hidden sm:flex sm:items-center sm:ms-6 gap-3">
+                <div x-data="notificationsBell()" x-init="init()" @click.outside="openBell = false" class="relative">
+                    <button type="button"
+                            @click="openBell = !openBell; if (openBell) fetchNotifications()"
+                            aria-label="Notificări"
+                            class="relative inline-flex items-center justify-center p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span x-show="unreadCount > 0"
+                              x-text="unreadCount > 9 ? '9+' : unreadCount"
+                              x-cloak
+                              class="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] px-1 text-[10px] font-bold leading-none text-white bg-rose-600 rounded-full">
+                        </span>
+                    </button>
+
+                    <div x-show="openBell"
+                         x-transition
+                         x-cloak
+                         class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/70">
+                            <span class="text-sm font-bold text-gray-900">Notificări</span>
+                            <button type="button"
+                                    x-show="unreadCount > 0"
+                                    @click="markAllRead()"
+                                    class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition">
+                                Marchează toate citite
+                            </button>
+                        </div>
+
+                        <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
+                            <template x-if="loading">
+                                <div class="px-4 py-6 text-xs text-gray-400 text-center">Se încarcă notificările...</div>
+                            </template>
+
+                            <template x-if="!loading && notifications.length === 0">
+                                <div class="px-4 py-6 text-xs text-gray-400 text-center">Nu ai notificări momentan.</div>
+                            </template>
+
+                            <template x-for="n in notifications" :key="n.id">
+                                <div class="px-4 py-3 text-sm flex items-start justify-between gap-3"
+                                     :class="n.isRead ? 'bg-white text-gray-600' : 'bg-indigo-50/50 text-gray-900'">
+                                    <div class="space-y-0.5 min-w-0">
+                                        <p class="text-xs leading-relaxed break-words"
+                                           :class="n.isRead ? 'font-normal' : 'font-semibold'"
+                                           x-text="n.message"></p>
+                                        <p class="text-[11px] text-gray-400" x-text="formatDate(n.created_at)"></p>
+                                    </div>
+                                    <template x-if="!n.isRead">
+                                        <button type="button"
+                                                @click="markRead(n.id)"
+                                                class="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-md bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 transition">
+                                            Citită
+                                        </button>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
@@ -147,6 +208,90 @@
         </div>
     </div>
 </nav>
+
+<script>
+    function notificationsBell() {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        return {
+            openBell: false,
+            loading: false,
+            hasLoaded: false,
+            notifications: [],
+            unreadCount: 0,
+            pollTimer: null,
+
+            init() {
+                this.fetchNotifications();
+                window.addEventListener('notifications-updated', () => this.fetchNotifications());
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') {
+                        this.fetchNotifications();
+                    }
+                });
+                this.pollTimer = setInterval(() => {
+                    if (document.visibilityState === 'visible') {
+                        this.fetchNotifications();
+                    }
+                }, 10000);
+            },
+
+            async fetchNotifications() {
+                if (!this.hasLoaded) {
+                    this.loading = true;
+                }
+                try {
+                    const response = await fetch('/api/notifications', {
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                    });
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    this.notifications = data.notifications || [];
+                    this.unreadCount = data.unread_count || 0;
+                    this.hasLoaded = true;
+                } catch (e) {
+                    // ignore transient network errors in header poll
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            async markRead(id) {
+                const response = await fetch(`/api/notifications/${id}/read`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    credentials: 'same-origin',
+                });
+                if (response.ok) {
+                    await this.fetchNotifications();
+                }
+            },
+
+            async markAllRead() {
+                const response = await fetch('/api/notifications/read-all', {
+                    method: 'PATCH',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    credentials: 'same-origin',
+                });
+                if (response.ok) {
+                    await this.fetchNotifications();
+                }
+            },
+
+            formatDate(value) {
+                if (!value) return '';
+                return new Date(value).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' });
+            },
+        };
+    }
+</script>
 
 @if(Auth::user()?->role === 'admin' && !request()->routeIs('admin.*'))
     <div class="bg-indigo-50 border-b border-indigo-200 text-indigo-800 text-xs sm:text-sm">
