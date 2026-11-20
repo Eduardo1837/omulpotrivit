@@ -150,12 +150,16 @@ class ListingService
     }
 
     /**
-     * Returnează planurile de promovare disponibile, din cache.
+     * Returnează planurile de promovare disponibile (din cache pentru cele vizibile).
      */
-    public function getPromotionPlans(): Collection
+    public function getPromotionPlans(bool $visibleOnly = true): Collection
     {
+        if (!$visibleOnly) {
+            return $this->promotionPlanAccessor->getAll(visibleOnly: false);
+        }
+
         return Cache::remember(self::CACHE_KEY_PROMOTION_PLANS, self::CACHE_TTL_SECONDS, function () {
-            return $this->promotionPlanAccessor->getAll();
+            return $this->promotionPlanAccessor->getAll(visibleOnly: true);
         });
     }
 
@@ -471,6 +475,50 @@ class ListingService
         }
 
         return $updated;
+    }
+
+    /**
+     * Comută vizibilitatea (ascuns/vizibil) unui plan de promovare.
+     */
+    public function togglePromotionPlanVisibility(int|string $id): ?PromotionPlan
+    {
+        $plan = $this->promotionPlanAccessor->toggleHidden($id);
+
+        if ($plan) {
+            $this->invalidatePromotionPlansCache();
+
+            Log::info('Promotion plan visibility toggled', [
+                'plan_id' => $id,
+                'is_hidden' => $plan->is_hidden,
+            ]);
+        }
+
+        return $plan;
+    }
+
+    /**
+     * Șterge un plan de promovare dacă nu are promovări asociate.
+     */
+    public function deletePromotionPlan(int|string $id): bool
+    {
+        if ($this->promotionPlanAccessor->hasPromotions($id)) {
+            Log::warning('Promotion plan deletion blocked: plan has associated promotions', [
+                'plan_id' => $id,
+            ]);
+            return false;
+        }
+
+        $deleted = $this->promotionPlanAccessor->delete($id);
+
+        if ($deleted) {
+            $this->invalidatePromotionPlansCache();
+
+            Log::info('Promotion plan deleted', [
+                'plan_id' => $id,
+            ]);
+        }
+
+        return $deleted;
     }
 
     /**

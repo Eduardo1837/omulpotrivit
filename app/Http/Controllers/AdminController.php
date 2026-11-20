@@ -293,7 +293,7 @@ class AdminController extends Controller
 
     public function plansIndex()
     {
-        $plans = $this->listingService->getPromotionPlans();
+        $plans = $this->listingService->getPromotionPlans(visibleOnly: false);
 
         return view('admin.plans.index', compact('plans'));
     }
@@ -346,5 +346,32 @@ class AdminController extends Controller
         $this->listingService->updatePromotionPlan($id, $validated);
 
         return redirect()->route('admin.plans.index')->with('success', 'Planul de promovare a fost actualizat cu succes.');
+    }
+
+    public function togglePlanVisibility($id)
+    {
+        $plan = $this->listingService->togglePromotionPlanVisibility($id);
+        if (!$plan) {
+            abort(404);
+        }
+
+        $statusLabel = $plan->is_hidden ? 'ascuns' : 'vizibil';
+
+        return redirect()->route('admin.plans.index')->with('success', "Planul \"{$plan->name}\" este acum {$statusLabel}.");
+    }
+
+    public function destroyPlan($id)
+    {
+        $plan = $this->listingService->getPromotionPlanById($id);
+        if (!$plan) {
+            abort(404);
+        }
+
+        if (!$this->listingService->deletePromotionPlan($id)) {
+            return redirect()->route('admin.plans.index')
+                ->with('error', 'Planul nu poate fi șters deoarece are promovări asociate. Îl poți ascunde în schimb.');
+        }
+
+        return redirect()->route('admin.plans.index')->with('success', 'Planul de promovare a fost șters cu succes.');
     }
 }

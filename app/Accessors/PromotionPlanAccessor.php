@@ -9,11 +9,17 @@ use Illuminate\Database\Eloquent\Collection;
 class PromotionPlanAccessor
 {
     /**
-     * Returnează toate planurile de promovare ordonate după preț.
+     * Returnează planurile de promovare ordonate după preț (implicit doar cele vizibile).
      */
-    public function getAll(): Collection
+    public function getAll(bool $visibleOnly = true): Collection
     {
-        return PromotionPlan::orderBy('price')->get();
+        $query = PromotionPlan::orderBy('price');
+
+        if ($visibleOnly) {
+            $query->where('is_hidden', false);
+        }
+
+        return $query->get();
     }
 
     /**
@@ -47,6 +53,31 @@ class PromotionPlanAccessor
     public function delete(int|string $id): bool
     {
         return (bool) PromotionPlan::destroy($id);
+    }
+
+    /**
+     * Comută vizibilitatea (is_hidden) a unui plan de promovare.
+     */
+    public function toggleHidden(int|string $id): ?PromotionPlan
+    {
+        $plan = PromotionPlan::find($id);
+        if (!$plan) {
+            return null;
+        }
+
+        $plan->update(['is_hidden' => !$plan->is_hidden]);
+
+        return $plan->fresh();
+    }
+
+    /**
+     * Verifică dacă planul are promovări asociate.
+     */
+    public function hasPromotions(int|string $id): bool
+    {
+        $plan = PromotionPlan::find($id);
+
+        return $plan ? $plan->promotions()->exists() : false;
     }
 
     /**

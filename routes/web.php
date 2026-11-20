@@ -112,6 +112,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/plans', [AdminController::class, 'storePlan'])->name('plans.store');
         Route::get('/plans/{id}/edit', [AdminController::class, 'editPlan'])->name('plans.edit');
         Route::put('/plans/{id}', [AdminController::class, 'updatePlan'])->name('plans.update');
+        Route::patch('/plans/{id}/toggle-visibility', [AdminController::class, 'togglePlanVisibility'])->name('plans.toggle');
+        Route::delete('/plans/{id}', [AdminController::class, 'destroyPlan'])->name('plans.destroy');
     });
         
 });

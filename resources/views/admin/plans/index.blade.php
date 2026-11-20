@@ -46,6 +46,7 @@
                             <th class="py-3 px-4 uppercase font-semibold text-xs">Preț</th>
                             <th class="py-3 px-4 uppercase font-semibold text-xs">Durată Promovare</th>
                             <th class="py-3 px-4 uppercase font-semibold text-xs">Limită Anunțuri Promovate</th>
+                            <th class="py-3 px-4 uppercase font-semibold text-xs">Vizibilitate</th>
                             <th class="py-3 px-4 uppercase font-semibold text-xs rounded-tr-lg">Acțiuni</th>
                         </tr>
                     </thead>
@@ -84,14 +85,43 @@
                                     @endif
                                 </td>
                                 <td class="py-3 px-4">
-                                    <a href="{{ route('admin.plans.edit', $plan->id) }}" class="bg-amber-500 hover:bg-amber-600 text-white py-1 px-3 rounded text-xs font-semibold transition">
-                                        Editează
-                                    </a>
+                                    @if($plan->is_hidden)
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-700">
+                                            Ascuns
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                                            Vizibil
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-2">
+                                        <a href="{{ route('admin.plans.edit', $plan->id) }}" class="bg-amber-500 hover:bg-amber-600 text-white py-1 px-3 rounded text-xs font-semibold transition">
+                                            Editează
+                                        </a>
+
+                                        <form action="{{ route('admin.plans.toggle', $plan->id) }}" method="POST">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="py-1 px-3 rounded text-xs font-semibold transition {{ $plan->is_hidden ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-gray-600 hover:bg-gray-700 text-white' }}">
+                                                {{ $plan->is_hidden ? 'Afișează' : 'Ascunde' }}
+                                            </button>
+                                        </form>
+
+                                        <form action="{{ route('admin.plans.destroy', $plan->id) }}" method="POST" onsubmit="return confirm('Sigur dorești să ștergi acest plan?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded text-xs font-semibold transition">
+                                                Șterge
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="py-6 px-4 text-center text-sm text-gray-500">
+                                <td colspan="8" class="py-6 px-4 text-center text-sm text-gray-500">
                                     Nu există planuri de promovare configurate.
                                 </td>
                             </tr>
