@@ -15,40 +15,45 @@
 <body class="antialiased bg-gray-50 text-gray-900 font-sans">
 
     <!-- Navigation Bar -->
-    <nav class="bg-white shadow-sm border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 items-center">
-                <!-- Logo -->
-                <div class="flex-shrink-0 flex items-center">
-                    <a href="{{ route('home') }}" class="font-bold text-2xl text-blue-600">
-                        {{ config('app.name', 'MyPlatform') }}
-                    </a>
-                </div>
-
-                <!-- Auth Links -->
-                <div class="flex items-center space-x-4">
-                    <a href="{{ route('listings.index') }}" class="text-gray-600 hover:text-gray-900 font-medium">Browse Listings</a>
-                    
-                    @if (Route::has('login'))
-                        @auth
-                            <a href="{{ route('listings.create') }}" class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3 py-1.5 rounded-lg text-sm shadow-sm transition">
-                                + Publică Anunț
+    @auth
+        @include('layouts.navigation')
+    @else
+        <nav class="bg-white border-b border-gray-100">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <!-- Logo -->
+                        <div class="shrink-0 flex items-center">
+                            <a href="{{ route('home') }}">
+                                <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
                             </a>
-                            @if(auth()->user()->role === 'admin')
-                                <a href="{{ route('admin.dashboard') }}" class="text-indigo-600 hover:text-indigo-800 font-semibold px-2 py-1.5 text-sm">🛡️ Admin</a>
-                            @endif
-                            <a href="{{ route('profile.edit') }}" class="text-gray-600 hover:text-gray-900 font-medium px-2 py-1.5 text-sm">Profil</a>
-                        @else
-                            <a href="{{ route('login') }}" class="text-gray-600 hover:text-gray-900 font-medium px-3 py-2">Log in</a>
+                        </div>
+
+                        <!-- Navigation Links -->
+                        <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                            <x-nav-link :href="route('home')" :active="request()->routeIs('home')">
+                                {{ __('Acasă') }}
+                            </x-nav-link>
+
+                            <x-nav-link :href="route('listings.index')" :active="request()->routeIs('listings.index') || request()->routeIs('listings.details')">
+                                {{ __('Anunțuri') }}
+                            </x-nav-link>
+                        </div>
+                    </div>
+
+                    <!-- Guest Links -->
+                    <div class="flex items-center space-x-4">
+                        @if (Route::has('login'))
+                            <a href="{{ route('login') }}" class="text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2">Log in</a>
                             @if (Route::has('register'))
-                                <a href="{{ route('register') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-md transition">Register</a>
+                                <a href="{{ route('register') }}" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-md transition">Register</a>
                             @endif
-                        @endauth
-                    @endif
+                        @endif
+                    </div>
                 </div>
             </div>
-        </div>
-    </nav>
+        </nav>
+    @endauth
 
     <!-- Hero Section -->
     <div class="bg-blue-600 py-20 px-4 sm:px-6 lg:px-8 text-center text-white">
@@ -66,11 +71,11 @@
     <!-- Categories Section -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">Browse by Category</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div id="home-categories-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
             @forelse($categories as $category)
-                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 text-center hover:shadow-md transition cursor-pointer">
+                <a href="{{ route('listings.index', ['category_id' => $category->id]) }}" class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 text-center hover:shadow-md transition cursor-pointer block">
                     <h3 class="font-semibold text-gray-800">{{ $category->name ?? 'Category ' . $category->id }}</h3>
-                </div>
+                </a>
             @empty
                 <p class="text-gray-500 col-span-4">No categories available yet.</p>
             @endforelse
@@ -85,7 +90,7 @@
                 <a href="{{ route('listings.index') }}" class="text-blue-600 hover:text-blue-800 font-medium">View all &rarr;</a>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div id="home-listings-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 @forelse($recentListings as $listing)
                     <div class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition flex flex-col">
                         <div class="h-48 bg-gray-200 flex items-center justify-center text-gray-400">
@@ -93,9 +98,14 @@
                             <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                         </div>
                         <div class="p-5 flex-1 flex flex-col">
-                            <div class="flex justify-between items-start mb-2">
+                            <div class="flex justify-between items-start mb-2 gap-2">
                                 <h3 class="text-lg font-bold text-gray-900">{{ $listing->title ?? 'Listing #'.$listing->id }}</h3>
-                                <span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">{{ $listing->priceFormatted ?? '$0' }}</span>
+                                <div class="flex items-center gap-1 shrink-0">
+                                    @if($listing->isFeatured)
+                                        <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1 rounded">★ Promovat</span>
+                                    @endif
+                                    <span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">{{ $listing->priceFormatted ?? '$0' }}</span>
+                                </div>
                             </div>
                             <p class="text-gray-600 text-sm mb-4 flex-1">{{ Str::limit($listing->description ?? 'No description provided.', 80) }}</p>
                             <a href="{{ route('listings.details', $listing->id) }}" class="text-blue-600 hover:text-blue-800 text-sm font-semibold uppercase tracking-wider">View Details</a>
@@ -114,6 +124,71 @@
             &copy; {{ date('Y') }} {{ config('app.name', 'MyPlatform') }}. All rights reserved.
         </div>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const escapeHtml = (value) => String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+
+            try {
+                const response = await fetch('/api/home', {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) return;
+
+                const data = await response.json();
+                const categoriesGrid = document.getElementById('home-categories-grid');
+                const listingsGrid = document.getElementById('home-listings-grid');
+
+                if (categoriesGrid && Array.isArray(data.categories)) {
+                    categoriesGrid.innerHTML = data.categories.length
+                        ? data.categories.map((cat) => `
+                            <a href="/listings?category_id=${encodeURIComponent(cat.id)}" class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 text-center hover:shadow-md transition cursor-pointer block">
+                                <h3 class="font-semibold text-gray-800">${escapeHtml(cat.name || ('Category ' + cat.id))}</h3>
+                            </a>
+                        `).join('')
+                        : '<p class="text-gray-500 col-span-4">No categories available yet.</p>';
+                }
+
+                if (listingsGrid && Array.isArray(data.listings)) {
+                    listingsGrid.innerHTML = data.listings.length
+                        ? data.listings.map((item) => {
+                            const desc = String(item.descriere || 'No description provided.');
+                            const shortDesc = desc.length > 80 ? desc.slice(0, 80) + '...' : desc;
+                            const badge = item.este_promovat
+                                ? '<span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1 rounded">★ Promovat</span>'
+                                : '';
+                            return `
+                                <div class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition flex flex-col">
+                                    <div class="h-48 bg-gray-200 flex items-center justify-center text-gray-400">
+                                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </div>
+                                    <div class="p-5 flex-1 flex flex-col">
+                                        <div class="flex justify-between items-start mb-2 gap-2">
+                                            <h3 class="text-lg font-bold text-gray-900">${escapeHtml(item.titlu)}</h3>
+                                            <div class="flex items-center gap-1 shrink-0">
+                                                ${badge}
+                                                <span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">${escapeHtml(item.pret_afisat)}</span>
+                                            </div>
+                                        </div>
+                                        <p class="text-gray-600 text-sm mb-4 flex-1">${escapeHtml(shortDesc)}</p>
+                                        <a href="/listings/${encodeURIComponent(item.id)}" class="text-blue-600 hover:text-blue-800 text-sm font-semibold uppercase tracking-wider">View Details</a>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')
+                        : '<p class="text-gray-500 col-span-3">No listings available yet.</p>';
+                }
+            } catch (e) {
+                // Păstrează conținutul redat inițial pe server dacă API-ul nu răspunde
+            }
+        });
+    </script>
 
 </body>
 </html>

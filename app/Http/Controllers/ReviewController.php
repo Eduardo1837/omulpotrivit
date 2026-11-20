@@ -2,26 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ListingService;
+use App\Services\ReviewService;
 use Illuminate\Http\Request;
-
-use App\Models\Review;
-use App\Models\Listing;
 
 class ReviewController extends Controller
 {
+    public function __construct(
+        protected ReviewService $reviewService,
+        protected ListingService $listingService
+    ) {
+    }
+
     public function index()
     {
-        // Eager load relationships to prevent N+1 queries
-        $reviews = Review::with(['listing', 'author'])
-            ->latest()
-            ->paginate(10);
+        $reviews = $this->reviewService->getVisibleReviewsPaginated(10);
 
         return view('reviews.index', compact('reviews'));
     }
 
     public function create()
     {
-        $listings = Listing::all();
+        $listings = $this->listingService->getAllActiveListings();
 
         return view('reviews.create', compact('listings'));
     }
@@ -34,12 +36,55 @@ class ReviewController extends Controller
             'comment'    => ['required', 'string', 'max:1000'],
         ]);
 
-        // Assign the currently authenticated user as the author
-        $validated['author_id'] = 1; // Replace with auth()->id() in a real application
+        $authorId = auth()->id();
+        $existing = $this->reviewService->getReviewsForListing($validated['listing_id'], visibleOnly: false)
+            ->firstWhere('author_id', $authorId);
 
-        Review::create($validated);
+        if ($existing) {
+            $redirect = $request->boolean('redirect_to_listing')
+                ? redirect()->route('listings.details', $validated['listing_id'])
+                : back();
+
+            return $redirect->with('error', 'Ai lăsat deja o recenzie pentru acest anunț.');
+        }
+
+        $this->reviewService->createReview($validated, $authorId);
+
+        if ($request->boolean('redirect_to_listing')) {
+            return redirect()->route('listings.details', $validated['listing_id'])
+                ->with('success', 'Recenzia a fost adăugată cu succes!');
+        }
 
         return redirect()->route('reviews.index')
             ->with('success', 'Review submitted successfully!');
+    }
+
+    public function update(Request $request, int|string $id)
+    {
+        $validated = $request->validate([
+            'rating'  => ['required', 'integer', 'min:1', 'max:5'],
+            'comment' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $review = $this->reviewService->updateReview($id, $validated, auth()->id());
+
+        if (!$review) {
+            abort(403, 'Nu ai permisiunea să modifici această recenzie.');
+        }
+
+        return redirect()->route('listings.details', $review->listing_id)
+            ->with('success', 'Recenzia a fost actualizată!');
+    }
+
+    public function destroy(int|string $id)
+    {
+        $listingId = $this->reviewService->deleteOwnReview($id, auth()->id());
+
+        if (!$listingId) {
+            abort(403, 'Nu ai permisiunea să ștergi această recenzie.');
+        }
+
+        return redirect()->route('listings.details', $listingId)
+            ->with('success', 'Recenzia a fost ștearsă.');
     }
 }

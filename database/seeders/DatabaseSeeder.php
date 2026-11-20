@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\Listing;
+use App\Models\PromotionPlan;
 use App\Models\Tag;
 use Illuminate\Support\Facades\Hash;
 
@@ -174,5 +175,37 @@ class DatabaseSeeder extends Seeder
         Tag::create(['name' => 'Programare', 'slug' => 'programare']);
         Tag::create(['name' => 'Gaming', 'slug' => 'gaming']);
         Tag::create(['name' => 'Remote', 'slug' => 'remote']);
+
+        // --- 4. Creăm Planurile de Promovare ---
+        $plans = [
+            [
+                'name' => 'Free',
+                'price' => 0.00,
+                'currency' => 'RON',
+                'durationDays' => 0,
+                'maxItems' => 1,
+            ],
+            [
+                'name' => 'Pro 7 Days',
+                'price' => 29.00,
+                'currency' => 'RON',
+                'durationDays' => 7,
+                'maxItems' => 5,
+            ],
+            [
+                'name' => 'Business 30 Days',
+                'price' => 79.00,
+                'currency' => 'RON',
+                'durationDays' => 30,
+                'maxItems' => null,
+            ],
+        ];
+
+        foreach ($plans as $plan) {
+            PromotionPlan::firstOrCreate(
+                ['name' => $plan['name']],
+                $plan
+            );
+        }
     }
 }

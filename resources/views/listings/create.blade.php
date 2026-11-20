@@ -13,6 +13,12 @@
     <div class="py-10">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
             
+            @if (session('error'))
+                <div class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-sm font-medium">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             @if (isset($errors) && $errors->any())
                 <div class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
                     <div class="font-semibold text-sm mb-1">Te rugăm să corectezi erorile de mai jos:</div>
@@ -24,8 +30,10 @@
                 </div>
             @endif
 
+            <div id="create-listing-feedback" class="hidden mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-sm font-medium"></div>
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-xl border border-gray-200/80 p-6 md:p-8">
-                <form action="{{ route('listings.store') }}" method="POST" class="space-y-6">
+                <form id="create-listing-form" action="{{ route('listings.store') }}" method="POST" class="space-y-6">
                     @csrf
 
                     <div>
@@ -83,7 +91,7 @@
 
                     <div class="pt-2">
                         <label class="inline-flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" name="is_featured" value="1" {{ old('is_featured') ? 'checked' : '' }}
+                            <input type="checkbox" id="is_featured" name="is_featured" value="1" {{ old('is_featured') ? 'checked' : '' }}
                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
                             <span class="text-sm font-medium text-gray-700">Doresc să promovez acest anunț (Featured)</span>
                         </label>
@@ -93,12 +101,99 @@
                         <a href="{{ route('listings.index') }}" class="text-sm font-semibold text-gray-600 hover:text-gray-900 transition">
                             Anulează
                         </a>
-                        <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm text-sm transition">
-                            Publică Anunțul
-                        </button>
+                        @if(auth()->user()?->role !== 'admin')
+                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm text-sm transition">
+                                Publică Anunțul
+                            </button>
+                        @else
+                            <span class="text-xs font-medium text-indigo-700 bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-200">
+                                Administratorii pot doar previzualiza acest formular.
+                            </span>
+                        @endif
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    @if(auth()->user()?->role !== 'admin')
+        <script>
+            document.addEventListener('DOMContentLoaded', async () => {
+                const form = document.getElementById('create-listing-form');
+                const categorySelect = document.getElementById('category_id');
+                const feedback = document.getElementById('create-listing-feedback');
+                const csrfToken = '{{ csrf_token() }}';
+
+                const showError = (message) => {
+                    if (!feedback) return;
+                    feedback.textContent = message;
+                    feedback.classList.remove('hidden');
+                };
+
+                try {
+                    const catRes = await fetch('/api/categories', {
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                    });
+                    if (catRes.ok && categorySelect) {
+                        const categories = await catRes.json();
+                        const selectedValue = categorySelect.value;
+                        categorySelect.innerHTML = '<option value="">-- Alege o categorie potrivită --</option>';
+                        categories.forEach((cat) => {
+                            const opt = document.createElement('option');
+                            opt.value = cat.id;
+                            opt.textContent = cat.name;
+                            if (String(cat.id) === String(selectedValue)) {
+                                opt.selected = true;
+                            }
+                            categorySelect.appendChild(opt);
+                        });
+                    }
+                } catch (e) {
+                    // Păstrează categoriile redate de server
+                }
+
+                if (form) {
+                    form.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        if (feedback) feedback.classList.add('hidden');
+
+                        const payload = {
+                            title: document.getElementById('title')?.value ?? '',
+                            description: document.getElementById('description')?.value ?? '',
+                            price: Number(document.getElementById('price')?.value ?? 0),
+                            priceType: document.getElementById('priceType')?.value ?? 'fix',
+                            city: document.getElementById('city')?.value ?? '',
+                            category_id: Number(categorySelect?.value ?? 0),
+                            is_featured: Boolean(document.getElementById('is_featured')?.checked),
+                        };
+
+                        try {
+                            const response = await fetch('/api/listings', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-CSRF-TOKEN': csrfToken,
+                                },
+                                credentials: 'same-origin',
+                                body: JSON.stringify(payload),
+                            });
+
+                            const data = await response.json();
+                            if (!response.ok) {
+                                const errorsList = data.errors ? Object.values(data.errors).flat().join(' ') : '';
+                                showError(errorsList || data.message || 'Eroare la publicarea anunțului.');
+                                return;
+                            }
+
+                            window.location.href = '{{ route('listings.my') }}';
+                        } catch (err) {
+                            showError('Eroare de rețea la publicarea anunțului.');
+                        }
+                    });
+                }
+            });
+        </script>
+    @endif
 </x-app-layout>

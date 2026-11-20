@@ -1,77 +1,154 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Submit a Review</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f8fafc; color: #1e293b; }
-        .form-container { background: white; padding: 25px 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 600px; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; }
-        select, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-family: inherit; font-size: 14px; }
-        select:focus, textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-        .btn { display: inline-block; padding: 10px 16px; background: #2563eb; color: white; text-decoration: none; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; }
-        .btn:hover { background: #1d4ed8; }
-        .btn-secondary { background: #64748b; }
-        .btn-secondary:hover { background: #475569; }
-        .error-message { color: #ef4444; font-size: 12px; margin-top: 6px; display: block; }
-        .is-invalid { border-color: #ef4444; }
-        .is-invalid:focus { border-color: #ef4444; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2); }
-    </style>
-</head>
-<body>
-    <h1>Submit a Review</h1>
+<x-app-layout>
+    <x-slot name="header">
+        <div class="flex justify-between items-center">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                {{ __('Scrie o Recenzie') }}
+            </h2>
+            <a href="{{ route('reviews.index') }}" class="text-sm font-semibold text-gray-600 hover:text-gray-900 transition">
+                &larr; Înapoi la recenzii
+            </a>
+        </div>
+    </x-slot>
 
-    <div class="form-container">
-        <form action="{{ route('reviews.store') }}" method="POST">
-            @csrf
+    <div class="py-10">
+        <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
+            <div id="create-review-feedback" class="hidden mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-sm font-medium"></div>
 
-            {{-- Select Listing --}}
-            <div class="form-group">
-                <label for="listing_id">Listing</label>
-                <select name="listing_id" id="listing_id" class="{{ $errors->has('listing_id') ? 'is-invalid' : '' }}" required>
-                    <option value="">-- Select Listing --</option>
-                    @foreach($listings as $listing)
-                        <option value="{{ $listing->id }}" {{ old('listing_id') == $listing->id ? 'selected' : '' }}>
-                            {{ $listing->title ?? 'Listing #' . $listing->id }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('listing_id')
-                    <span class="error-message">{{ $message }}</span>
-                @enderror
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-xl border border-gray-200/80 p-6 md:p-8">
+                <form id="create-review-form" action="{{ route('reviews.store') }}" method="POST" class="space-y-6">
+                    @csrf
+
+                    <div>
+                        <label for="listing_id" class="block text-sm font-bold text-gray-700 mb-1">Anunț *</label>
+                        <select name="listing_id" id="listing_id" required class="w-full border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">-- Alege un anunț --</option>
+                            @foreach($listings as $listing)
+                                <option value="{{ $listing->id }}" {{ old('listing_id') == $listing->id ? 'selected' : '' }}>
+                                    {{ $listing->title ?? 'Listing #' . $listing->id }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('listing_id')
+                            <span class="text-xs text-rose-600 mt-1 block">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label for="rating" class="block text-sm font-bold text-gray-700 mb-1">Rating (1 - 5) *</label>
+                        <select name="rating" id="rating" required class="w-full border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">-- Selectează nota --</option>
+                            @for($i = 5; $i >= 1; $i--)
+                                <option value="{{ $i }}" {{ old('rating', 5) == $i ? 'selected' : '' }}>
+                                    {{ str_repeat('★', $i) }}{{ str_repeat('☆', 5 - $i) }} ({{ $i }})
+                                </option>
+                            @endfor
+                        </select>
+                        @error('rating')
+                            <span class="text-xs text-rose-600 mt-1 block">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label for="comment" class="block text-sm font-bold text-gray-700 mb-1">Comentariu *</label>
+                        <textarea name="comment" id="comment" rows="4" required
+                                  placeholder="Scrie părerea ta despre serviciul prestat..."
+                                  class="w-full border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('comment') }}</textarea>
+                        @error('comment')
+                            <span class="text-xs text-rose-600 mt-1 block">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <a href="{{ route('reviews.index') }}" class="text-sm font-semibold text-gray-600 hover:text-gray-900 transition">
+                            Anulează
+                        </a>
+                        <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm text-sm transition">
+                            Trimite Recenzia
+                        </button>
+                    </div>
+                </form>
             </div>
-
-            {{-- Rating Field --}}
-            <div class="form-group">
-                <label for="rating">Rating (1 to 5)</label>
-                <select name="rating" id="rating" class="{{ $errors->has('rating') ? 'is-invalid' : '' }}" required>
-                    <option value="">-- Select Rating --</option>
-                    @for($i = 1; $i <= 5; $i++)
-                        <option value="{{ $i }}" {{ old('rating') == $i ? 'selected' : '' }}>
-                            {{ $i }} Star{{ $i > 1 ? 's' : '' }}
-                        </option>
-                    @endfor
-                </select>
-                @error('rating')
-                    <span class="error-message">{{ $message }}</span>
-                @enderror
-            </div>
-
-            {{-- Comment Field --}}
-            <div class="form-group">
-                <label for="comment">Comment</label>
-                <textarea name="comment" id="comment" rows="4" class="{{ $errors->has('comment') ? 'is-invalid' : '' }}" required>{{ old('comment') }}</textarea>
-                @error('comment')
-                    <span class="error-message">{{ $message }}</span>
-                @enderror
-            </div>
-
-            <div style="margin-top: 30px;">
-                <button type="submit" class="btn">Submit</button>
-                <a href="{{ route('reviews.index') }}" class="btn btn-secondary">Cancel</a>
-            </div>
-        </form>
+        </div>
     </div>
-</body>
-</html>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const form = document.getElementById('create-review-form');
+            const listingSelect = document.getElementById('listing_id');
+            const feedback = document.getElementById('create-review-feedback');
+            const csrfToken = '{{ csrf_token() }}';
+
+            const showError = (message) => {
+                if (!feedback) return;
+                feedback.textContent = message;
+                feedback.classList.remove('hidden');
+            };
+
+            try {
+                const res = await fetch('/api/listings', {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin',
+                });
+                if (res.ok && listingSelect) {
+                    const listings = await res.json();
+                    const selected = listingSelect.value;
+                    listingSelect.innerHTML = '<option value="">-- Alege un anunț --</option>';
+                    listings.forEach((item) => {
+                        const opt = document.createElement('option');
+                        opt.value = item.id;
+                        opt.textContent = item.titlu;
+                        if (String(item.id) === String(selected)) {
+                            opt.selected = true;
+                        }
+                        listingSelect.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                // Păstrează opțiunile redate de server
+            }
+
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    if (feedback) feedback.classList.add('hidden');
+
+                    const listingId = listingSelect?.value;
+                    const rating = document.getElementById('rating')?.value;
+                    const comment = document.getElementById('comment')?.value;
+
+                    if (!listingId) {
+                        showError('Te rugăm să selectezi un anunț.');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/api/listings/${encodeURIComponent(listingId)}/reviews`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({
+                                rating: Number(rating),
+                                comment,
+                            }),
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok) {
+                            const errorsList = data.errors ? Object.values(data.errors).flat().join(' ') : '';
+                            showError(errorsList || data.message || 'Eroare la salvarea recenziei.');
+                            return;
+                        }
+
+                        window.location.href = '{{ route('reviews.index') }}';
+                    } catch (err) {
+                        showError('Eroare de rețea la trimiterea recenziei.');
+                    }
+                });
+            }
+        });
+    </script>
+</x-app-layout>
