@@ -221,6 +221,35 @@ class ListingController extends Controller
     }
 
     /**
+     * POST /api/plans/select
+     * Selectează/activează un plan de promovare pentru utilizatorul autentificat
+     */
+    public function selectPlan(Request $request): JsonResponse
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['message' => 'Neautentificat.'], 401);
+        }
+
+        $validated = $request->validate([
+            'plan_id' => 'required|integer|exists:promotion_plans,id',
+        ]);
+
+        $plan = $this->listingService->selectUserPlan($userId, (int) $validated['plan_id']);
+        if (!$plan) {
+            return response()->json(['message' => 'Planul selectat nu este disponibil.'], 404);
+        }
+
+        $quotas = $this->listingService->getUserQuotas($userId);
+
+        return response()->json([
+            'message' => "Planul „{$plan->name}” a fost activat pentru contul tău.",
+            'plan' => $plan,
+            'quotas' => $quotas,
+        ], 200);
+    }
+
+    /**
      * POST /api/listings/{id}/promote
      * Promovează un anunț al utilizatorului autentificat
      */

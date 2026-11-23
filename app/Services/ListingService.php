@@ -172,6 +172,95 @@ class ListingService
     }
 
     /**
+     * Returnează planul activ curent al utilizatorului (sau planul gratuit implicit).
+     */
+    public function getUserCurrentPlan(?int $userId): ?PromotionPlan
+    {
+        if (!$userId) {
+            return null;
+        }
+
+        $planId = $this->getUserActivePlanId($userId);
+        if ($planId) {
+            $plan = $this->promotionPlanAccessor->getById($planId);
+            if ($plan) {
+                return $plan;
+            }
+        }
+
+        return $this->promotionPlanAccessor->getFreePlan();
+    }
+
+    /**
+     * Selectează/activează un plan de promovare pentru utilizator.
+     */
+    public function selectUserPlan(int $userId, int $planId): ?PromotionPlan
+    {
+        $plan = $this->promotionPlanAccessor->getById($planId);
+        if (!$plan || $plan->is_hidden) {
+            return null;
+        }
+
+        $this->promotionPlanAccessor->setUserPlan($userId, $plan);
+
+        Log::info('User selected promotion plan', [
+            'user_id' => $userId,
+            'plan_id' => $plan->id,
+            'plan_name' => $plan->name,
+        ]);
+
+        return $plan;
+    }
+
+    /**
+     * Returnează cotele rămase pentru utilizator: anunțuri gratuite și promovări disponibile.
+     */
+    public function getUserQuotas(?int $userId): array
+    {
+        $currentPlan = $this->getUserCurrentPlan($userId);
+
+        if (!$userId) {
+            return [
+                'current_plan' => null,
+                'free_listings_limit' => 1,
+                'free_listings_used' => 0,
+                'free_listings_left' => 0,
+                'promotions_limit' => 0,
+                'promotions_used' => 0,
+                'promotions_left' => 0,
+            ];
+        }
+
+        $freeUsed = $this->listingAccessor->countFreeByUserId($userId, activeOnly: true);
+        $freeLimit = 1;
+        $freeLeft = max(0, $freeLimit - $freeUsed);
+
+        $promotedUsed = $this->listingAccessor->countFeaturedByUserId($userId, activeOnly: true);
+        $isPaidPlan = $currentPlan && (float) $currentPlan->price > 0;
+
+        if (!$isPaidPlan) {
+            $promotionsLimit = 0;
+            $promotionsLeft = 0;
+        } elseif ($currentPlan->maxItems === null) {
+            $promotionsLimit = null;
+            $promotionsLeft = null;
+        } else {
+            $promotionsLimit = (int) $currentPlan->maxItems;
+            $promotionsLeft = max(0, $promotionsLimit - $promotedUsed);
+        }
+
+        return [
+            'current_plan' => $currentPlan,
+            'free_listings_limit' => $freeLimit,
+            'free_listings_used' => $freeUsed,
+            'free_listings_left' => $freeLeft,
+            'promotions_limit' => $promotionsLimit,
+            'promotions_used' => $promotedUsed,
+            'promotions_left' => $promotionsLeft,
+        ];
+    }
+
+    /**
      * Returnează istoricul abonamentelor/promovărilor unui utilizator.
      */
     public function getUserPromotionsHistory(int|string $userId): Collection

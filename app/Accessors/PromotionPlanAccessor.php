@@ -119,6 +119,54 @@ class PromotionPlanAccessor
     }
 
     /**
+     * Returnează planul gratuit implicit (primul plan vizibil cu preț 0).
+     */
+    public function getFreePlan(): ?PromotionPlan
+    {
+        return PromotionPlan::where('is_hidden', false)
+            ->where('price', '<=', 0)
+            ->orderBy('id')
+            ->first();
+    }
+
+    /**
+     * Setează planul activ la nivel de utilizator (fără a fi legat de un anunț specific).
+     */
+    public function setUserPlan(int $userId, PromotionPlan $plan): Promotion
+    {
+        Promotion::where('user_id', $userId)
+            ->whereNull('listing_id')
+            ->where('status', 'ACTIVE')
+            ->update([
+                'status' => 'REPLACED',
+                'endsAt' => now(),
+            ]);
+
+        $promotion = Promotion::create([
+            'plan_id' => $plan->id,
+            'user_id' => $userId,
+            'listing_id' => null,
+            'startsAt' => now(),
+            'endsAt' => $plan->durationDays > 0 ? now()->addDays($plan->durationDays) : null,
+            'status' => 'ACTIVE',
+        ]);
+
+        if ((float) $plan->price > 0) {
+            Payment::create([
+                'user_id' => $userId,
+                'promotion_id' => $promotion->id,
+                'amount' => $plan->price,
+                'currency' => $plan->currency ?? 'RON',
+                'method' => 'card',
+                'status' => 'COMPLETED',
+                'paidAt' => now(),
+            ]);
+        }
+
+        return $promotion;
+    }
+
+    /**
      * Returnează ID-ul ultimului plan activ selectat/folosit de utilizator.
      */
     public function getLatestActivePlanIdForUser(int|string $userId): ?int
