@@ -25,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/my-listings', [ListingController::class, 'myListings']);
     Route::get('/listings/{id}/own', [ListingController::class, 'showOwn'])->whereNumber('id');
+    Route::get('/listings/{id}/analytics', [ListingController::class, 'analytics'])->whereNumber('id');
     Route::post('/listings', [ListingController::class, 'store']);
     Route::put('/listings/{id}', [ListingController::class, 'update'])->whereNumber('id');
     Route::post('/listings/{id}/promote', [ListingController::class, 'promote'])->whereNumber('id');

@@ -54,6 +54,7 @@ class ListingController extends Controller
         }
 
         if (request()->wantsJson()) {
+            $this->listingService->recordListingClick($listing, auth()->id());
             return new ListingResource($listing);
         }
 

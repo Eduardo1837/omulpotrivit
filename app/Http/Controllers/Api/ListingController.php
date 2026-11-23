@@ -26,6 +26,9 @@ class ListingController extends Controller
     public function home(): JsonResponse
     {
         $recentListings = $this->listingService->getHomeListings(6);
+        $viewerId = auth()->id() ?? auth('sanctum')->id();
+        $this->listingService->recordHomeImpressions($recentListings, $viewerId);
+
         $categories = $this->categoryService->getAllCategoriesWithActiveListings();
 
         return response()->json([
@@ -89,6 +92,7 @@ class ListingController extends Controller
 
         $reviews = $this->reviewService->getReviewsForListing($listing->id, visibleOnly: true);
         $currentUserId = auth()->id() ?? auth('sanctum')->id();
+        $this->listingService->recordListingClick($listing, $currentUserId);
 
         $payload = (new ListingResource($listing))->resolve();
         $payload['reviews'] = $reviews->map(fn ($r) => [
@@ -126,6 +130,35 @@ class ListingController extends Controller
         }
 
         return response()->json(new ListingResource($listing), 200);
+    }
+
+    /**
+     * GET /api/listings/{id}/analytics
+     * Returnează statisticile și seria zilnică (7 zile) pentru graficul unui anunț promovat al proprietarului.
+     */
+    public function analytics(int|string $id): JsonResponse
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['message' => 'Neautentificat.'], 401);
+        }
+
+        $listing = $this->listingService->getListingById($id);
+        if (!$listing) {
+            return response()->json(['message' => 'Anunțul nu a fost găsit.'], 404);
+        }
+
+        if ((int) $listing->provider_id !== $userId && auth()->user()?->role !== 'admin') {
+            return response()->json(['message' => 'Nu ai permisiunea să accesezi statisticile acestui anunț.'], 403);
+        }
+
+        if (!$listing->is_featured) {
+            return response()->json([
+                'message' => 'Statisticile detaliate sunt disponibile doar pentru anunțurile promovate.',
+            ], 403);
+        }
+
+        return response()->json($this->listingService->getListingAnalytics($listing->id, 7), 200);
     }
 
     /**

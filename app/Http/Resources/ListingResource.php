@@ -34,6 +34,7 @@ class ListingResource extends JsonResource
             'categorie'      => $this->category ? $this->category->name : 'Fără categorie',
             'provider_id'    => $this->provider_id,
             'este_promovat'  => (bool) $this->is_featured,
+            'plan_priority_price' => isset($this->plan_priority_price) ? (float) $this->plan_priority_price : null,
             'status'         => ucfirst($this->status ?? 'activ'),
             'views_count'    => (int) ($this->views_count ?? 0),
             'image_url'      => $images[0]['url'] ?? $this->imageUrl,
