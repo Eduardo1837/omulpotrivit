@@ -2,6 +2,7 @@
 
 namespace App\Accessors;
 
+use App\Models\Payment;
 use App\Models\Promotion;
 use App\Models\PromotionPlan;
 use Illuminate\Database\Eloquent\Collection;
@@ -9,11 +10,17 @@ use Illuminate\Database\Eloquent\Collection;
 class PromotionPlanAccessor
 {
     /**
-     * Returnează toate planurile de promovare ordonate după preț.
+     * Returnează planurile de promovare ordonate după preț (implicit doar cele vizibile).
      */
-    public function getAll(): Collection
+    public function getAll(bool $visibleOnly = true): Collection
     {
-        return PromotionPlan::orderBy('price')->get();
+        $query = PromotionPlan::orderBy('price');
+
+        if ($visibleOnly) {
+            $query->where('is_hidden', false);
+        }
+
+        return $query->get();
     }
 
     /**
@@ -50,11 +57,44 @@ class PromotionPlanAccessor
     }
 
     /**
-     * Înregistrează o promovare activă pentru utilizator și anunț.
+     * Comută vizibilitatea (is_hidden) a unui plan de promovare.
+     */
+    public function toggleHidden(int|string $id): ?PromotionPlan
+    {
+        $plan = PromotionPlan::find($id);
+        if (!$plan) {
+            return null;
+        }
+
+        $plan->update(['is_hidden' => !$plan->is_hidden]);
+
+        return $plan->fresh();
+    }
+
+    /**
+     * Verifică dacă planul are promovări asociate.
+     */
+    public function hasPromotions(int|string $id): bool
+    {
+        $plan = PromotionPlan::find($id);
+
+        return $plan ? $plan->promotions()->exists() : false;
+    }
+
+    /**
+     * Înregistrează o promovare activă pentru utilizator și anunț, închizând promovările anterioare
+     * și salvând tranzacția în payments pentru planurile plătite.
      */
     public function recordUserPromotion(int $userId, int|string $listingId, PromotionPlan $plan): Promotion
     {
-        return Promotion::create([
+        Promotion::where('listing_id', $listingId)
+            ->where('status', 'ACTIVE')
+            ->update([
+                'status' => 'REPLACED',
+                'endsAt' => now(),
+            ]);
+
+        $promotion = Promotion::create([
             'plan_id' => $plan->id,
             'user_id' => $userId,
             'listing_id' => $listingId,
@@ -62,6 +102,20 @@ class PromotionPlanAccessor
             'endsAt' => $plan->durationDays > 0 ? now()->addDays($plan->durationDays) : null,
             'status' => 'ACTIVE',
         ]);
+
+        if ((float) $plan->price > 0) {
+            Payment::create([
+                'user_id' => $userId,
+                'promotion_id' => $promotion->id,
+                'amount' => $plan->price,
+                'currency' => $plan->currency ?? 'RON',
+                'method' => 'card',
+                'status' => 'COMPLETED',
+                'paidAt' => now(),
+            ]);
+        }
+
+        return $promotion;
     }
 
     /**
@@ -75,5 +129,16 @@ class PromotionPlanAccessor
             ->first();
 
         return $promotion?->plan_id;
+    }
+
+    /**
+     * Returnează istoricul complet al promovărilor/abonamentelor unui utilizator.
+     */
+    public function getUserPromotionsHistory(int|string $userId): Collection
+    {
+        return Promotion::with(['plan', 'listing', 'payment'])
+            ->where('user_id', $userId)
+            ->latest('id')
+            ->get();
     }
 }

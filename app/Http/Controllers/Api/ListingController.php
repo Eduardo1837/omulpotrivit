@@ -315,7 +315,7 @@ class ListingController extends Controller
         }
 
         $listing = $this->listingService->getListingById($id);
-        if (!$listing) {
+        if (!$listing || $listing->status === 'deleted') {
             return response()->json(['message' => 'Anunțul nu a fost găsit.'], 404);
         }
 
@@ -326,14 +326,14 @@ class ListingController extends Controller
         if ($request->has('confirm_delete')) {
             if (trim((string) $request->input('confirm_delete')) !== 'delete') {
                 return response()->json([
-                    'message' => 'Tastează "delete" pentru a confirma ștergerea permanentă.',
+                    'message' => 'Tastează "delete" pentru a confirma ștergerea.',
                 ], 422);
             }
 
-            $this->listingService->forceDeleteListing($id, $userId);
+            $this->listingService->markListingAsDeleted($id, $userId);
 
             return response()->json([
-                'message' => 'Anunțul a fost șters permanent.',
+                'message' => 'Anunțul a fost șters.',
             ], 200);
         }
 

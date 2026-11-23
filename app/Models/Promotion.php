@@ -16,6 +16,11 @@ class Promotion extends Model
         return $this->belongsTo(PromotionPlan::class, 'plan_id');
     }
 
+    public function listing()
+    {
+        return $this->belongsTo(Listing::class, 'listing_id');
+    }
+
     public function payment()
     {
         // O promovare are de obicei o plată confirmată, deși poate avea mai multe tentative
