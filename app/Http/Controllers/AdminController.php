@@ -321,6 +321,7 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0',
             'currency' => 'required|string|max:10',
             'durationDays' => 'required|integer|min:0',
@@ -351,6 +352,7 @@ class AdminController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0',
             'currency' => 'required|string|max:10',
             'durationDays' => 'required|integer|min:0',

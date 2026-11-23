@@ -34,6 +34,15 @@
                                class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                     </div>
 
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Descriere Plan</label>
+                        <textarea name="description"
+                                  id="description"
+                                  rows="3"
+                                  placeholder="ex: Vizibilitate sporită timp de 14 zile pentru anunțurile tale..."
+                                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">{{ old('description') }}</textarea>
+                    </div>
+
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Preț</label>

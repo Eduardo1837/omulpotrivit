@@ -400,6 +400,37 @@ class UserPlansApiTest extends TestCase
         $response = $this->actingAs($admin)->get('/admin/plans');
         $response->assertStatus(200)
             ->assertSeeInOrder(['Business 30 Days', 'Istoric Planuri Șterse', 'Cheap Old Plan', 'Șters']);
+
+        // Admin can create and update a plan with description
+        $this->actingAs($admin)
+            ->post('/admin/plans', [
+                'name' => 'Gold 14 Days',
+                'description' => 'Descriere plan Gold',
+                'price' => 49,
+                'currency' => 'RON',
+                'durationDays' => 14,
+                'maxItems' => 10,
+            ])
+            ->assertRedirect(route('admin.plans.index'));
+
+        $goldPlan = PromotionPlan::where('name', 'Gold 14 Days')->firstOrFail();
+        $this->assertSame('Descriere plan Gold', $goldPlan->description);
+
+        $this->actingAs($admin)
+            ->put("/admin/plans/{$goldPlan->id}", [
+                'name' => 'Gold 14 Days',
+                'description' => 'Descriere actualizată Gold',
+                'price' => 49,
+                'currency' => 'RON',
+                'durationDays' => 14,
+                'maxItems' => 10,
+            ])
+            ->assertRedirect(route('admin.plans.index'));
+
+        $this->assertDatabaseHas('promotion_plans', [
+            'id' => $goldPlan->id,
+            'description' => 'Descriere actualizată Gold',
+        ]);
     }
 
     public function test_promotion_is_blocked_when_plan_max_items_limit_is_reached(): void
