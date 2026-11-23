@@ -396,10 +396,10 @@ class UserPlansApiTest extends TestCase
             ->assertJsonCount(1)
             ->assertJsonMissing(['name' => 'Cheap Old Plan']);
 
-        // Admin table renders active plan before the soft-deleted plan marked as Șters
+        // Admin table renders active plan in main section and soft-deleted plan in separate history section
         $response = $this->actingAs($admin)->get('/admin/plans');
         $response->assertStatus(200)
-            ->assertSeeInOrder(['Business 30 Days', 'Cheap Old Plan', 'Șters']);
+            ->assertSeeInOrder(['Business 30 Days', 'Istoric Planuri Șterse', 'Cheap Old Plan', 'Șters']);
     }
 
     public function test_promotion_is_blocked_when_plan_max_items_limit_is_reached(): void

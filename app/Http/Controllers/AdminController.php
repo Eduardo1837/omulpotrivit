@@ -305,9 +305,11 @@ class AdminController extends Controller
 
     public function plansIndex()
     {
-        $plans = $this->listingService->getPromotionPlans(visibleOnly: false, includeDeleted: true);
+        $allPlans = $this->listingService->getPromotionPlans(visibleOnly: false, includeDeleted: true);
+        $plans = $allPlans->where('is_deleted', false)->values();
+        $deletedPlans = $allPlans->where('is_deleted', true)->values();
 
-        return view('admin.plans.index', compact('plans'));
+        return view('admin.plans.index', compact('plans', 'deletedPlans'));
     }
 
     public function createPlan()
