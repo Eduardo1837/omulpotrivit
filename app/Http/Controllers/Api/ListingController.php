@@ -234,9 +234,11 @@ class ListingController extends Controller
 
         $validated = $request->validate([
             'plan_id' => 'required|integer|exists:promotion_plans,id',
+            'payment_method' => 'nullable|string|in:card,google_play',
         ]);
 
-        $plan = $this->listingService->selectUserPlan($userId, (int) $validated['plan_id']);
+        $paymentMethod = $validated['payment_method'] ?? 'card';
+        $plan = $this->listingService->selectUserPlan($userId, (int) $validated['plan_id'], $paymentMethod);
         if (!$plan) {
             return response()->json(['message' => 'Planul selectat nu este disponibil.'], 404);
         }

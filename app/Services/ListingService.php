@@ -194,19 +194,20 @@ class ListingService
     /**
      * Selectează/activează un plan de promovare pentru utilizator.
      */
-    public function selectUserPlan(int $userId, int $planId): ?PromotionPlan
+    public function selectUserPlan(int $userId, int $planId, string $paymentMethod = 'card'): ?PromotionPlan
     {
         $plan = $this->promotionPlanAccessor->getById($planId);
         if (!$plan || $plan->is_hidden || $plan->is_deleted) {
             return null;
         }
 
-        $this->promotionPlanAccessor->setUserPlan($userId, $plan);
+        $this->promotionPlanAccessor->setUserPlan($userId, $plan, $paymentMethod);
 
         Log::info('User selected promotion plan', [
             'user_id' => $userId,
             'plan_id' => $plan->id,
             'plan_name' => $plan->name,
+            'payment_method' => $paymentMethod,
         ]);
 
         return $plan;

@@ -47,9 +47,95 @@
         </div>
     </div>
 
+    <!-- Mock Payment Portal Modal -->
+    <div id="paymentPortalModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-200">
+            <!-- Modal Header -->
+            <div class="bg-gray-900 text-white px-6 py-4 flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] uppercase tracking-wider text-amber-400 font-bold">Portal de Plată Securizat (Simulare)</p>
+                    <h3 id="paymentPlanTitle" class="text-lg font-bold mt-0.5">Activare Plan</h3>
+                </div>
+                <button type="button" onclick="closePaymentModal()" class="text-gray-400 hover:text-white transition text-xl leading-none">&times;</button>
+            </div>
+
+            <div class="p-6 space-y-5">
+                <!-- Order Summary -->
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-gray-500">Total de plată</p>
+                        <p id="paymentPlanMeta" class="text-xs font-medium text-gray-700 mt-0.5"></p>
+                    </div>
+                    <span id="paymentPlanAmount" class="text-xl font-black text-gray-900">0.00 RON</span>
+                </div>
+
+                <!-- Payment Method Selector -->
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Alege metoda de plată</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button"
+                                id="methodBtn-card"
+                                onclick="selectPaymentMethod('card')"
+                                class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 border-amber-500 bg-amber-50 text-amber-900 text-xs font-bold transition">
+                            💳 Card Bancar
+                        </button>
+                        <button type="button"
+                                id="methodBtn-google_play"
+                                onclick="selectPaymentMethod('google_play')"
+                                class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs font-bold transition">
+                            ▶ Google Play
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card Mock Form -->
+                <div id="paymentSection-card" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Număr card (demo)</label>
+                        <input type="text" value="4242 •••• •••• 4242" class="w-full rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Expirare</label>
+                            <input type="text" value="12/28" class="w-full rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">CVV</label>
+                            <input type="text" value="123" class="w-full rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Play Mock Section -->
+                <div id="paymentSection-google_play" class="hidden rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-center space-y-1.5">
+                    <p class="text-sm font-bold text-emerald-900">▶ Google Play Billing</p>
+                    <p class="text-xs text-emerald-700">Plata va fi confirmată instant prin contul tău Google Play (simulare).</p>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button"
+                            id="cancelPaymentBtn"
+                            onclick="closePaymentModal()"
+                            class="px-4 py-2 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
+                        Anulează
+                    </button>
+                    <button type="button"
+                            id="confirmPaymentBtn"
+                            onclick="processMockPayment()"
+                            class="px-5 py-2 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition">
+                        Plătește acum
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let selectedPlanId = @json($activePlanId ?? null);
         let loadedPlans = [];
+        let pendingPaymentPlan = null;
+        let selectedPaymentMethod = 'card';
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
         function showPlanFeedback(message, isError = false) {
@@ -92,7 +178,75 @@
             }
         }
 
-        async function activatePlan(planId) {
+        function openPaymentModal(plan) {
+            pendingPaymentPlan = plan;
+            selectedPaymentMethod = 'card';
+            selectPaymentMethod('card');
+
+            document.getElementById('paymentPlanTitle').textContent = `Cumpără planul ${plan.name}`;
+            document.getElementById('paymentPlanAmount').textContent = `${Number(plan.price).toFixed(2)} ${plan.currency}`;
+            document.getElementById('paymentPlanMeta').textContent = plan.durationDays > 0
+                ? `Valabil ${plan.durationDays} zile`
+                : 'Activare imediată';
+
+            const btn = document.getElementById('confirmPaymentBtn');
+            btn.disabled = false;
+            btn.textContent = 'Plătește acum';
+            document.getElementById('paymentPortalModal').classList.remove('hidden');
+        }
+
+        function closePaymentModal() {
+            pendingPaymentPlan = null;
+            document.getElementById('paymentPortalModal').classList.add('hidden');
+        }
+
+        function selectPaymentMethod(method) {
+            selectedPaymentMethod = method;
+            const methods = ['card', 'google_play'];
+            methods.forEach(m => {
+                const btn = document.getElementById(`methodBtn-${m}`);
+                const sec = document.getElementById(`paymentSection-${m}`);
+                const isActive = m === method;
+                if (btn) {
+                    btn.className = isActive
+                        ? 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 border-amber-500 bg-amber-50 text-amber-900 text-xs font-bold transition'
+                        : 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs font-bold transition';
+                }
+                if (sec) {
+                    sec.classList.toggle('hidden', !isActive);
+                }
+            });
+        }
+
+        async function processMockPayment() {
+            if (!pendingPaymentPlan) return;
+            const btn = document.getElementById('confirmPaymentBtn');
+            btn.disabled = true;
+            btn.textContent = 'Se procesează plata...';
+
+            await new Promise(resolve => setTimeout(resolve, 700));
+            const planId = pendingPaymentPlan.id;
+            const method = selectedPaymentMethod;
+
+            const success = await commitPlanSelection(planId, method);
+            if (success) {
+                closePaymentModal();
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Plătește acum';
+            }
+        }
+
+        function activatePlan(planId) {
+            const plan = loadedPlans.find(p => Number(p.id) === Number(planId));
+            if (plan && Number(plan.price) > 0) {
+                openPaymentModal(plan);
+                return;
+            }
+            commitPlanSelection(planId, 'card');
+        }
+
+        async function commitPlanSelection(planId, paymentMethod = 'card') {
             try {
                 const response = await fetch('/api/plans/select', {
                     method: 'POST',
@@ -102,13 +256,13 @@
                         'X-CSRF-TOKEN': csrfToken,
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify({ plan_id: planId }),
+                    body: JSON.stringify({ plan_id: planId, payment_method: paymentMethod }),
                 });
 
                 const data = await response.json();
                 if (!response.ok) {
                     showPlanFeedback(data.message || 'Nu s-a putut activa planul.', true);
-                    return;
+                    return false;
                 }
 
                 selectedPlanId = planId;
@@ -123,8 +277,10 @@
                 }
                 renderPlans();
                 showPlanFeedback(data.message || 'Planul a fost actualizat!');
+                return true;
             } catch (error) {
                 showPlanFeedback('Eroare de rețea la activarea planului.', true);
+                return false;
             }
         }
 

@@ -134,7 +134,7 @@ class PromotionPlanAccessor
     /**
      * Setează planul activ la nivel de utilizator (fără a fi legat de un anunț specific).
      */
-    public function setUserPlan(int $userId, PromotionPlan $plan): Promotion
+    public function setUserPlan(int $userId, PromotionPlan $plan, string $paymentMethod = 'card'): Promotion
     {
         Promotion::where('user_id', $userId)
             ->whereNull('listing_id')
@@ -159,7 +159,7 @@ class PromotionPlanAccessor
                 'promotion_id' => $promotion->id,
                 'amount' => $plan->price,
                 'currency' => $plan->currency ?? 'RON',
-                'method' => 'card',
+                'method' => $paymentMethod,
                 'status' => 'COMPLETED',
                 'paidAt' => now(),
             ]);

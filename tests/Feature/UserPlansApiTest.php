@@ -177,20 +177,31 @@ class UserPlansApiTest extends TestCase
             'maxItems' => 5,
         ]);
 
-        // Dedicated plans page renders plans container and current plan badge
+        // Dedicated plans page renders plans container, payment modal, and current plan badge
         $this->actingAs($user)
             ->get('/my-plan')
             ->assertStatus(200)
             ->assertSee('Planuri de Promovare Disponibile')
+            ->assertSee('paymentPortalModal')
+            ->assertSee('Google Play')
             ->assertSee('/api/plans')
             ->assertSee($freePlan->name);
 
-        // User can select a plan via API
+        // User can select a plan via API with a chosen payment method (e.g., google_play)
         $this->actingAs($user)
-            ->postJson('/api/plans/select', ['plan_id' => $paidPlan->id])
+            ->postJson('/api/plans/select', [
+                'plan_id' => $paidPlan->id,
+                'payment_method' => 'google_play',
+            ])
             ->assertStatus(200)
             ->assertJsonPath('plan.id', $paidPlan->id)
             ->assertJsonPath('quotas.promotions_left', 5);
+
+        $this->assertDatabaseHas('payments', [
+            'user_id' => $user->id,
+            'method' => 'google_play',
+            'status' => 'COMPLETED',
+        ]);
 
         // Navigation badge reflects selected plan
         $this->actingAs($user)
