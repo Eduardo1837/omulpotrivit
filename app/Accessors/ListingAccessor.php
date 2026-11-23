@@ -3,6 +3,7 @@
 namespace App\Accessors;
 
 use App\Models\Listing;
+use App\Models\PromotionPlan;
 use Illuminate\Database\Eloquent\Collection;
 
 class ListingAccessor
@@ -16,15 +17,41 @@ class ListingAccessor
     }
 
     /**
+     * Atașează prețul celui mai scump plan activ al furnizorului (sau al anunțului)
+     * și ordonează: 1) is_featured DESC, 2) plan_priority_price DESC, 3) created_at DESC.
+     */
+    protected function applyPlanPriorityOrder($query)
+    {
+        $maxPlanPriceSubquery = PromotionPlan::selectRaw('COALESCE(MAX(promotion_plans.price), 0)')
+            ->join('promotions', 'promotions.plan_id', '=', 'promotion_plans.id')
+            ->where('promotions.status', 'ACTIVE')
+            ->where(function ($q) {
+                $q->whereColumn('promotions.listing_id', 'listings.id')
+                  ->orWhere(function ($q2) {
+                      $q2->whereNull('promotions.listing_id')
+                         ->whereColumn('promotions.user_id', 'listings.provider_id');
+                  });
+            })
+            ->where(function ($q) {
+                $q->whereNull('promotions.endsAt')
+                  ->orWhere('promotions.endsAt', '>', now());
+            });
+
+        return $query
+            ->select('listings.*')
+            ->selectSub($maxPlanPriceSubquery, 'plan_priority_price')
+            ->orderByDesc('is_featured')
+            ->orderByDesc('plan_priority_price')
+            ->latest('listings.created_at');
+    }
+
+    /**
      * Returnează doar listările active, prioritizând anunțurile promovate.
      */
     public function getActiveAll(): Collection
     {
-        return Listing::with(['category', 'images'])
-            ->where('status', 'activ')
-            ->orderByDesc('is_featured')
-            ->latest()
-            ->get();
+        $query = Listing::with(['category', 'images'])->where('status', 'activ');
+        return $this->applyPlanPriorityOrder($query)->get();
     }
 
     /**
@@ -32,12 +59,8 @@ class ListingAccessor
      */
     public function getActiveHomeListings(int $limit = 6): Collection
     {
-        return Listing::with(['category', 'images'])
-            ->where('status', 'activ')
-            ->orderByDesc('is_featured')
-            ->latest()
-            ->take($limit)
-            ->get();
+        $query = Listing::with(['category', 'images'])->where('status', 'activ');
+        return $this->applyPlanPriorityOrder($query)->take($limit)->get();
     }
 
     /**
@@ -71,12 +94,10 @@ class ListingAccessor
      */
     public function getActiveByCategoryId(int|string $categoryId): Collection
     {
-        return Listing::with('category')
+        $query = Listing::with('category')
             ->where('status', 'activ')
-            ->where('category_id', $categoryId)
-            ->orderByDesc('is_featured')
-            ->latest()
-            ->get();
+            ->where('category_id', $categoryId);
+        return $this->applyPlanPriorityOrder($query)->get();
     }
 
     /**
@@ -220,5 +241,13 @@ class ListingAccessor
     public function updateEntity(int|string $id, array $data): bool
     {
         return $this->update($id, $data);
+    }
+
+    /**
+     * Incrementează contorul views_count pentru o listare.
+     */
+    public function incrementViews(int|string $id): void
+    {
+        Listing::where('id', $id)->increment('views_count');
     }
 }

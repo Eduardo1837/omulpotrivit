@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Accessors\ListingAccessor;
 use App\Accessors\ListingImageAccessor;
 use App\Accessors\PromotionPlanAccessor;
+use App\Accessors\StatEventAccessor;
 use App\Events\ListingPromoted;
 use App\Models\Listing;
 use App\Models\PromotionPlan;
@@ -24,7 +25,8 @@ class ListingService
     public function __construct(
         protected ListingAccessor $listingAccessor,
         protected PromotionPlanAccessor $promotionPlanAccessor,
-        protected ListingImageAccessor $listingImageAccessor
+        protected ListingImageAccessor $listingImageAccessor,
+        protected StatEventAccessor $statEventAccessor
     ) {
     }
 
@@ -699,5 +701,104 @@ class ListingService
     public function invalidatePromotionPlansCache(): void
     {
         Cache::forget(self::CACHE_KEY_PROMOTION_PLANS);
+    }
+
+    /**
+     * Înregistrează afișările pe pagina principală (home_impression) și poziția (1..N),
+     * ignorând propriile anunțuri ale vizitatorului autentificat.
+     */
+    public function recordHomeImpressions(Collection $listings, ?int $viewerId = null): void
+    {
+        foreach ($listings->values() as $index => $listing) {
+            if ($viewerId !== null && (int) $listing->provider_id === $viewerId) {
+                continue;
+            }
+
+            $this->statEventAccessor->create([
+                'viewer_id' => $viewerId,
+                'listing_id' => $listing->id,
+                'eventType' => 'home_impression',
+                'resultPosition' => $index + 1,
+            ]);
+        }
+    }
+
+    /**
+     * Înregistrează un click pe pagina de detalii a anunțului și incrementează views_count,
+     * ignorând click-urile proprietarului.
+     */
+    public function recordListingClick(Listing $listing, ?int $viewerId = null): void
+    {
+        if ($viewerId !== null && (int) $listing->provider_id === $viewerId) {
+            return;
+        }
+
+        $this->listingAccessor->incrementViews($listing->id);
+        $listing->views_count = ((int) $listing->views_count) + 1;
+
+        $this->statEventAccessor->create([
+            'viewer_id' => $viewerId,
+            'listing_id' => $listing->id,
+            'eventType' => 'click',
+        ]);
+    }
+
+    /**
+     * Returnează datele de analytics (KPI + serie zilnică pe ultimele 7 zile) pentru un anunț promovat.
+     */
+    public function getListingAnalytics(int|string $listingId, int $days = 7): array
+    {
+        $listing = $this->listingAccessor->getById($listingId);
+        $since = now()->subDays($days - 1)->startOfDay();
+
+        $totalImpressions = $this->statEventAccessor->countByListingAndType($listingId, 'home_impression');
+        $totalClicks = $this->statEventAccessor->countByListingAndType($listingId, 'click');
+        $effectiveClicks = max($totalClicks, (int) ($listing?->views_count ?? 0));
+        $avgPosition = $this->statEventAccessor->getAveragePosition($listingId, 'home_impression');
+
+        $ctr = $totalImpressions > 0
+            ? round(($totalClicks / $totalImpressions) * 100, 1)
+            : 0.0;
+
+        $events = $this->statEventAccessor->getEventsForListingSince($listingId, $since);
+
+        $dailySeries = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $day = now()->subDays($i);
+            $dateKey = $day->format('Y-m-d');
+            $dailySeries[$dateKey] = [
+                'date' => $dateKey,
+                'label' => $day->format('d M'),
+                'home_impressions' => 0,
+                'clicks' => 0,
+            ];
+        }
+
+        foreach ($events as $event) {
+            $dateKey = $event->created_at?->format('Y-m-d');
+            if (!$dateKey || !isset($dailySeries[$dateKey])) {
+                continue;
+            }
+            if ($event->eventType === 'home_impression') {
+                $dailySeries[$dateKey]['home_impressions']++;
+            } elseif ($event->eventType === 'click') {
+                $dailySeries[$dateKey]['clicks']++;
+            }
+        }
+
+        $ownerPlan = $listing ? $this->getUserCurrentPlan((int) $listing->provider_id) : null;
+
+        return [
+            'listing_id' => (int) $listingId,
+            'is_featured' => (bool) ($listing?->is_featured ?? false),
+            'plan_name' => $ownerPlan?->name ?? 'Gratuit',
+            'plan_price' => (float) ($ownerPlan?->price ?? 0),
+            'total_home_impressions' => $totalImpressions,
+            'total_clicks' => $effectiveClicks,
+            'recorded_clicks' => $totalClicks,
+            'ctr_percent' => $ctr,
+            'avg_home_position' => $avgPosition,
+            'daily_series' => array_values($dailySeries),
+        ];
     }
 }
