@@ -102,12 +102,26 @@
                     </div>
                 </div>
 
-                <x-dropdown align="right" width="48">
+                <x-dropdown align="right" width="56">
                     <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
+                        <button class="inline-flex items-center gap-2 px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                            <span>{{ Auth::user()->name }}</span>
 
-                            <div class="ms-1">
+                            @if(Auth::user()?->role === 'admin')
+                                <span id="nav-plan-badge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700">
+                                    Admin
+                                </span>
+                            @else
+                                @php
+                                    $isPaidNavPlan = $currentUserPlan && (float) $currentUserPlan->price > 0;
+                                    $navPlanName = $currentUserPlan?->name ?? 'Gratuit';
+                                @endphp
+                                <span id="nav-plan-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold {{ $isPaidNavPlan ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-gray-100 text-gray-600 border border-gray-200' }}">
+                                    {{ $isPaidNavPlan ? '★ ' : '' }}{{ $navPlanName }}
+                                </span>
+                            @endif
+
+                            <div class="ms-0.5">
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
@@ -124,6 +138,15 @@
 
                         <x-dropdown-link :href="route('listings.my')">
                             📋 {{ __('Anunțurile mele') }}
+                        </x-dropdown-link>
+
+                        <x-dropdown-link :href="route('plans.index')" class="flex items-center justify-between gap-2">
+                            <span>⭐ {{ __('Planul meu') }}</span>
+                            @if(Auth::user()?->role !== 'admin')
+                                <span id="dropdown-plan-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ ($currentUserPlan && (float) $currentUserPlan->price > 0) ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600' }}">
+                                    {{ $currentUserPlan?->name ?? 'Gratuit' }}
+                                </span>
+                            @endif
                         </x-dropdown-link>
 
                         <x-dropdown-link :href="route('profile.edit')">
@@ -184,12 +207,23 @@
 
         <!-- Responsive Settings Options -->
         <div class="pt-4 pb-1 border-t border-gray-200">
-            <div class="px-4">
-                <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
-                <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+            <div class="px-4 flex items-center justify-between gap-2">
+                <div>
+                    <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
+                    <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+                </div>
+                @if(Auth::user()?->role !== 'admin')
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold {{ ($currentUserPlan && (float) $currentUserPlan->price > 0) ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-gray-100 text-gray-600 border border-gray-200' }}">
+                        {{ ($currentUserPlan && (float) $currentUserPlan->price > 0) ? '★ ' : '' }}{{ $currentUserPlan?->name ?? 'Gratuit' }}
+                    </span>
+                @endif
             </div>
 
             <div class="mt-3 space-y-1">
+                <x-responsive-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.index')">
+                    ⭐ {{ __('Planul meu') }}
+                </x-responsive-nav-link>
+
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Profile') }}
                 </x-responsive-nav-link>
