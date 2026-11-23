@@ -85,8 +85,8 @@
                         </a>
 
                         @auth
-                            @if(!$userHasReview)
-                                <a id="leave-review-btn" href="#leave-review" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm shadow-sm transition">
+                            @if(auth()->id() !== (int) ($listing->providerId ?? 0))
+                                <a id="leave-review-btn" href="#leave-review" class="{{ $userHasReview ? 'hidden ' : '' }}inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm shadow-sm transition">
                                     ★ Lasă o recenzie
                                 </a>
                             @endif

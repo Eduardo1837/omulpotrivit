@@ -331,10 +331,11 @@ class UserPlansApiTest extends TestCase
             'is_featured' => false,
         ]);
 
-        // Owner should not see the leave-review form on the listing details page
+        // Owner should not see the leave-review button or form on the listing details page
         $this->actingAs($owner)
             ->get("/listings/{$listing->id}")
             ->assertStatus(200)
+            ->assertDontSee('id="leave-review-btn"', false)
             ->assertDontSee('id="leave-review"', false);
 
         // API rejects self-review with 403
