@@ -119,11 +119,9 @@ class AdminController extends Controller
 
     public function listingsIndex()
     {
-        $allListings = $this->listingService->getAllListingsForAdmin();
-        $listings = $allListings->where('status', '!=', 'deleted')->values();
-        $deletedListings = $allListings->where('status', 'deleted')->values();
+        $listings = $this->listingService->getAllListingsForAdmin();
 
-        return view('admin.listings.index', compact('listings', 'deletedListings'));
+        return view('admin.listings.index', compact('listings'));
     }
 
     public function editListing($id)
@@ -307,11 +305,9 @@ class AdminController extends Controller
 
     public function plansIndex()
     {
-        $allPlans = $this->listingService->getPromotionPlans(visibleOnly: false, includeDeleted: true);
-        $plans = $allPlans->where('is_deleted', false)->values();
-        $deletedPlans = $allPlans->where('is_deleted', true)->values();
+        $plans = $this->listingService->getPromotionPlans(visibleOnly: false);
 
-        return view('admin.plans.index', compact('plans', 'deletedPlans'));
+        return view('admin.plans.index', compact('plans'));
     }
 
     public function createPlan()

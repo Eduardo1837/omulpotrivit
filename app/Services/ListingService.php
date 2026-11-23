@@ -157,14 +157,14 @@ class ListingService
     /**
      * Returnează planurile de promovare disponibile (din cache pentru cele vizibile și neșterse).
      */
-    public function getPromotionPlans(bool $visibleOnly = true, bool $includeDeleted = false): Collection
+    public function getPromotionPlans(bool $visibleOnly = true): Collection
     {
-        if (!$visibleOnly || $includeDeleted) {
-            return $this->promotionPlanAccessor->getAll(visibleOnly: $visibleOnly, includeDeleted: $includeDeleted);
+        if (!$visibleOnly) {
+            return $this->promotionPlanAccessor->getAll(visibleOnly: false);
         }
 
         return Cache::remember(self::CACHE_KEY_PROMOTION_PLANS, self::CACHE_TTL_SECONDS, function () {
-            return $this->promotionPlanAccessor->getAll(visibleOnly: true, includeDeleted: false);
+            return $this->promotionPlanAccessor->getAll(visibleOnly: true);
         });
     }
 

@@ -186,8 +186,7 @@ class AdminCrudTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.listings.index'))
             ->assertOk()
-            ->assertSee('Istoric Anunțuri Șterse')
-            ->assertSee('Admin Updated Listing')
-            ->assertSee('Șters');
+            ->assertDontSee('Istoric Anunțuri Șterse')
+            ->assertDontSee('Admin Updated Listing');
     }
 }

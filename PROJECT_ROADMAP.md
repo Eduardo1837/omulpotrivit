@@ -90,7 +90,7 @@
 - **`app/Models/`**
   - `AppNotification.php`, `Category.php`, `Listing.php`, `Offer.php`, `Payment.php`, `Promotion.php`, `PromotionPlan.php`, `Review.php`, `ServiceRequest.php`, `Skill.php`, `StatEvent.php`, `Tag.php`, `User.php`.
 - **`app/Providers/`**
-  - `AppServiceProvider.php` — Default empty service provider (`register()`, `boot()`).
+  - `AppServiceProvider.php` — Registers `ListingService` as `scoped` in `register()` (with documented `bind` / `scoped` / `singleton` switching) and shares `currentUserPlan` with `layouts.navigation` in `boot()`.
 - **`app/View/Components/`**
   - `AppLayout.php` — Renders `layouts.app`.
   - `GuestLayout.php` — Renders `layouts.guest`.
@@ -118,10 +118,10 @@
 - `views/` — Blade templates (see Section 7 for the full view map).
 
 ### `tests/`
-- `TestCase.php`, `Unit/ExampleTest.php`, `Feature/ExampleTest.php`, `Feature/ProfileTest.php`, `Feature/Auth/*` (Breeze default test suite).
+- `TestCase.php`, `Unit/ExampleTest.php`, `Unit/ServiceLifetimeTest.php` (verifies `bind` / `scoped` / `singleton` DI lifetimes), `Feature/ExampleTest.php`, `Feature/ProfileTest.php`, `Feature/Auth/*` (Breeze default test suite).
 
 ### Root Configuration & Docs
-- `composer.json`, `package.json`, `vite.config.js`, `tailwind.config.js`, `postcss.config.js`, `phpunit.xml`, `.env.example`, `Dockerfile`, `.dockerignore`, `docker/entrypoint.sh`, `PASI_GENERARE_MODELE_ORM.md`, `README.md`.
+- `composer.json`, `package.json`, `vite.config.js`, `tailwind.config.js`, `postcss.config.js`, `phpunit.xml`, `.env.example`, `Dockerfile`, `.dockerignore`, `docker/entrypoint.sh`, `PASI_GENERARE_MODELE_ORM.md`, `README.md`, `docs/LABORATOR_10_DI_LIFETIMES.md` (Romanian Lab 10 Exercise 3 DI lifetimes guide).
 
 ---
 

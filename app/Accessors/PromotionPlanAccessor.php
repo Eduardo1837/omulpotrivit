@@ -10,17 +10,11 @@ use Illuminate\Database\Eloquent\Collection;
 class PromotionPlanAccessor
 {
     /**
-     * Returnează planurile de promovare ordonate după preț (cu cele șterse logic la final dacă $includeDeleted = true).
+     * Returnează planurile de promovare neșterse ordonate după preț.
      */
-    public function getAll(bool $visibleOnly = true, bool $includeDeleted = false): Collection
+    public function getAll(bool $visibleOnly = true): Collection
     {
-        $query = PromotionPlan::query();
-
-        if (!$includeDeleted) {
-            $query->where('is_deleted', false);
-        } else {
-            $query->orderBy('is_deleted');
-        }
+        $query = PromotionPlan::where('is_deleted', false);
 
         if ($visibleOnly) {
             $query->where('is_hidden', false);

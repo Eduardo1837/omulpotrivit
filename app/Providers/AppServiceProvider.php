@@ -13,7 +13,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Comutarea duratei de viață a serviciului injectat (Laborator 10 - Exercițiul 3):
+        // - Transient (instanță nouă la fiecare rezolvare): $this->app->bind(ListingService::class);
+        // - Scoped (o singură instanță per cerere HTTP / scope): $this->app->scoped(ListingService::class);
+        // - Singleton (o singură instanță pe toată durata de viață a aplicației): $this->app->singleton(ListingService::class);
+        $this->app->scoped(ListingService::class);
     }
 
     /**

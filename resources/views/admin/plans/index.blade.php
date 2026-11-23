@@ -129,64 +129,6 @@
                     </tbody>
                 </table>
             </div>
-
-            @if($deletedPlans->isNotEmpty())
-                <div class="mt-8 bg-white overflow-hidden shadow-sm sm:rounded-xl border border-gray-200/80 p-6 overflow-x-auto">
-                    <div class="mb-4 flex items-center justify-between gap-2">
-                        <div>
-                            <h3 class="text-base font-bold text-gray-800">Istoric Planuri Șterse</h3>
-                            <p class="text-xs text-gray-500">Planurile eliminate din ofertă, păstrate în istoric pentru referință și abonamente anterioare.</p>
-                        </div>
-                        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                            {{ $deletedPlans->count() }} {{ $deletedPlans->count() === 1 ? 'plan șters' : 'planuri șterse' }}
-                        </span>
-                    </div>
-
-                    <table class="min-w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-600">
-                                <th class="py-2.5 px-4 uppercase font-semibold text-xs rounded-tl-lg">ID</th>
-                                <th class="py-2.5 px-4 uppercase font-semibold text-xs">Nume Plan</th>
-                                <th class="py-2.5 px-4 uppercase font-semibold text-xs">Tip</th>
-                                <th class="py-2.5 px-4 uppercase font-semibold text-xs">Preț</th>
-                                <th class="py-2.5 px-4 uppercase font-semibold text-xs">Durată</th>
-                                <th class="py-2.5 px-4 uppercase font-semibold text-xs">Limită</th>
-                                <th class="py-2.5 px-4 uppercase font-semibold text-xs rounded-tr-lg">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-gray-600 divide-y divide-gray-100">
-                            @foreach($deletedPlans as $deletedPlan)
-                                @php
-                                    $isPaidDeleted = (float) $deletedPlan->price > 0;
-                                @endphp
-                                <tr class="bg-rose-50/30 opacity-80">
-                                    <td class="py-3 px-4 font-mono text-xs text-gray-500">{{ $deletedPlan->id }}</td>
-                                    <td class="py-3 px-4 font-semibold text-gray-500 line-through">{{ $deletedPlan->name }}</td>
-                                    <td class="py-3 px-4">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $isPaidDeleted ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-600' }}">
-                                            {{ $isPaidDeleted ? '★ Pro (Plătit)' : 'Gratuit' }}
-                                        </span>
-                                    </td>
-                                    <td class="py-3 px-4 text-sm font-semibold text-gray-700">
-                                        {{ number_format((float) $deletedPlan->price, 2) }} {{ $deletedPlan->currency ?? 'RON' }}
-                                    </td>
-                                    <td class="py-3 px-4 text-sm text-gray-500">
-                                        {{ $deletedPlan->durationDays > 0 ? $deletedPlan->durationDays . ' zile' : 'Fără promovare' }}
-                                    </td>
-                                    <td class="py-3 px-4 text-sm text-gray-500">
-                                        {{ $deletedPlan->maxItems === null ? 'Nelimitat' : $deletedPlan->maxItems . ($deletedPlan->maxItems === 1 ? ' anunț' : ' anunțuri') }}
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
-                                            Șters
-                                        </span>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
         </div>
     </div>
 </x-app-layout>

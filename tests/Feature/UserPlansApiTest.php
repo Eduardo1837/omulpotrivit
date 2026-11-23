@@ -398,10 +398,12 @@ class UserPlansApiTest extends TestCase
             ->assertJsonCount(1)
             ->assertJsonMissing(['name' => 'Cheap Old Plan']);
 
-        // Admin table renders active plan in main section and soft-deleted plan in separate history section
+        // Admin table renders active plan and excludes soft-deleted plan
         $response = $this->actingAs($admin)->get('/admin/plans');
         $response->assertStatus(200)
-            ->assertSeeInOrder(['Business 30 Days', 'Istoric Planuri Șterse', 'Cheap Old Plan', 'Șters']);
+            ->assertSee('Business 30 Days')
+            ->assertDontSee('Istoric Planuri Șterse')
+            ->assertDontSee('Cheap Old Plan');
 
         // Admin can create and update a plan with description
         $this->actingAs($admin)

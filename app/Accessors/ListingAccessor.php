@@ -9,11 +9,14 @@ use Illuminate\Database\Eloquent\Collection;
 class ListingAccessor
 {
     /**
-     * Returnează toate listările împreună cu categoria din care fac parte.
+     * Returnează toate listările (excluzând cele șterse) împreună cu categoria și furnizorul.
      */
     public function getAll(): Collection
     {
-        return Listing::with(['category', 'provider'])->latest()->get();
+        return Listing::with(['category', 'provider'])
+            ->where('status', '!=', 'deleted')
+            ->latest()
+            ->get();
     }
 
     /**
@@ -220,11 +223,11 @@ class ListingAccessor
     }
 
     /**
-     * Returnează numărul total de listări.
+     * Returnează numărul total de listări (excluzând cele șterse).
      */
     public function countAll(): int
     {
-        return Listing::count();
+        return Listing::where('status', '!=', 'deleted')->count();
     }
 
     /**
