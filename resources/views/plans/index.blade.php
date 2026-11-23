@@ -40,8 +40,8 @@
                     <span id="selected-plan-label" class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 hidden"></span>
                 </div>
 
-                <div id="plans-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="col-span-full text-xs text-gray-400 py-4 text-center">Se încarcă planurile de promovare...</div>
+                <div id="plans-grid" class="space-y-4">
+                    <div class="text-xs text-gray-400 py-4 text-center">Se încarcă planurile de promovare...</div>
                 </div>
             </div>
         </div>
@@ -128,40 +128,88 @@
             }
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text ?? '';
+            return div.innerHTML;
+        }
+
         function renderPlans() {
             const grid = document.getElementById('plans-grid');
             if (!grid) return;
 
             if (!loadedPlans.length) {
-                grid.innerHTML = '<div class="col-span-full text-xs text-gray-500 py-4 text-center">Nu există planuri configurate.</div>';
+                grid.innerHTML = '<div class="text-xs text-gray-500 py-4 text-center">Nu există planuri configurate.</div>';
                 return;
             }
 
-            grid.innerHTML = loadedPlans.map(plan => {
-                const isPaid = Number(plan.price) > 0;
+            // Sort descending by price so the highest-priced (most noticeable) plan appears first
+            const sortedPlans = [...loadedPlans].sort((a, b) => Number(b.price) - Number(a.price));
+            const maxPaidPrice = Math.max(0, ...sortedPlans.map(p => Number(p.price)));
+
+            grid.innerHTML = sortedPlans.map(plan => {
+                const price = Number(plan.price);
+                const isPaid = price > 0;
+                const isTopTier = isPaid && price === maxPaidPrice;
+                const isMidTier = isPaid && price < maxPaidPrice;
                 const isSelected = Number(selectedPlanId) === Number(plan.id);
-                const borderClass = isSelected
-                    ? 'border-amber-500 ring-2 ring-amber-200 bg-amber-50/30'
-                    : 'border-gray-200 bg-gray-50/40';
+
+                let rowClass = 'bg-white border border-gray-200';
+                let titleClass = 'text-base font-semibold text-gray-800';
+                let priceBadgeClass = 'bg-gray-100 text-gray-700';
+                let tierBadgeHtml = '';
+                let buttonClass = isSelected
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50';
+
+                if (isTopTier) {
+                    rowClass = 'bg-gradient-to-r from-amber-50 via-yellow-50/70 to-white border-2 border-amber-400 shadow-md';
+                    titleClass = 'text-lg font-extrabold text-gray-900';
+                    priceBadgeClass = 'bg-amber-100 text-amber-900 border border-amber-300';
+                    tierBadgeHtml = '<span class="text-[11px] font-extrabold uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-amber-500 text-white shadow-xs">★ Recomandat</span>';
+                    buttonClass = isSelected
+                        ? 'bg-amber-600 text-white shadow-sm'
+                        : 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm';
+                } else if (isMidTier) {
+                    rowClass = 'bg-indigo-50/40 border border-indigo-200 shadow-sm';
+                    titleClass = 'text-base font-bold text-gray-900';
+                    priceBadgeClass = 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+                    tierBadgeHtml = '<span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700">Popular</span>';
+                    buttonClass = isSelected
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white border border-indigo-300 text-indigo-700 hover:bg-indigo-50';
+                }
+
+                if (isSelected) {
+                    rowClass += ' ring-2 ring-amber-300';
+                }
+
                 const maxItemsText = plan.maxItems ? `Max ${plan.maxItems} anunț(uri) promovate` : 'Anunțuri promovate nelimitate';
-                const durationText = plan.durationDays > 0 ? `${plan.durationDays} zile promovare` : 'Fără promovare (max 1 anunț gratuit)';
+                const durationText = plan.durationDays > 0 ? `${plan.durationDays} zile promovare` : 'Fără promovare';
+                const descriptionHtml = plan.description
+                    ? `<p class="text-sm text-gray-600 mt-1">${escapeHtml(plan.description)}</p>`
+                    : '';
 
                 return `
-                    <div class="rounded-xl border p-4 flex flex-col justify-between transition ${borderClass}">
-                        <div>
-                            <div class="flex items-center justify-between gap-2">
-                                <h4 class="font-bold text-gray-900 text-sm">${plan.name}</h4>
-                                <span class="text-xs font-bold px-2 py-0.5 rounded-full ${isPaid ? 'bg-amber-100 text-amber-800' : 'bg-gray-200 text-gray-700'}">
-                                    ${Number(plan.price).toFixed(2)} ${plan.currency}
-                                </span>
+                    <div class="rounded-xl p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition ${rowClass}">
+                        <div class="space-y-1.5 min-w-0">
+                            <div class="flex flex-wrap items-center gap-2.5">
+                                <h4 class="${titleClass}">${escapeHtml(plan.name)}</h4>
+                                ${tierBadgeHtml}
+                                ${isSelected ? '<span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">✓ Plan Activ</span>' : ''}
                             </div>
-                            <ul class="mt-2 space-y-1 text-xs text-gray-600">
-                                <li>• ${durationText}</li>
-                                <li>• ${isPaid ? maxItemsText : '1 anunț gratuit activ'}</li>
-                            </ul>
+                            ${descriptionHtml}
+                            <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 pt-1">
+                                <span>• ${durationText}</span>
+                                <span>• ${isPaid ? maxItemsText : '1 anunț gratuit activ'}</span>
+                            </div>
                         </div>
-                        <div class="mt-3">
-                            <button type="button" onclick="activatePlan(${plan.id})" class="w-full py-1.5 px-3 rounded-lg text-xs font-semibold transition ${isSelected ? 'bg-amber-500 text-white' : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-50'}">
+
+                        <div class="flex items-center justify-between md:justify-end gap-4 shrink-0">
+                            <span class="text-sm font-extrabold px-3 py-1.5 rounded-full ${priceBadgeClass}">
+                                ${price.toFixed(2)} ${escapeHtml(plan.currency)}
+                            </span>
+                            <button type="button" onclick="activatePlan(${plan.id})" class="py-2 px-4 rounded-lg text-xs font-bold transition ${buttonClass}">
                                 ${isSelected ? '✓ Plan Activ' : 'Alege Planul'}
                             </button>
                         </div>

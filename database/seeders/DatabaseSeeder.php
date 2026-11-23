@@ -180,6 +180,7 @@ class DatabaseSeeder extends Seeder
         $plans = [
             [
                 'name' => 'Free',
+                'description' => 'Ideal pentru a începe: 1 anunț gratuit activ, fără promovare plătită.',
                 'price' => 0.00,
                 'currency' => 'RON',
                 'durationDays' => 0,
@@ -187,6 +188,7 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'name' => 'Pro 7 Days',
+                'description' => 'Vizibilitate sporită timp de 7 zile pentru până la 5 anunțuri promovate.',
                 'price' => 29.00,
                 'currency' => 'RON',
                 'durationDays' => 7,
@@ -194,6 +196,7 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'name' => 'Business 30 Days',
+                'description' => 'Pachet complet pentru profesioniști: promovare 30 de zile și anunțuri promovate nelimitate.',
                 'price' => 79.00,
                 'currency' => 'RON',
                 'durationDays' => 30,
@@ -202,7 +205,7 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($plans as $plan) {
-            PromotionPlan::firstOrCreate(
+            PromotionPlan::updateOrCreate(
                 ['name' => $plan['name']],
                 $plan
             );

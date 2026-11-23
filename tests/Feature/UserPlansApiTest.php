@@ -200,6 +200,47 @@ class UserPlansApiTest extends TestCase
             ->assertSee('5');
     }
 
+    public function test_promotion_plans_support_description_and_logical_is_deleted(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+
+        $activePlan = PromotionPlan::create([
+            'name' => 'Starter',
+            'description' => 'Descriere plan Starter',
+            'price' => 15,
+            'currency' => 'RON',
+            'durationDays' => 7,
+            'maxItems' => 2,
+        ]);
+
+        $deletedPlan = PromotionPlan::create([
+            'name' => 'Archived Plan',
+            'description' => 'Plan arhivat',
+            'price' => 99,
+            'currency' => 'RON',
+            'durationDays' => 30,
+            'maxItems' => null,
+            'is_deleted' => true,
+        ]);
+
+        $this->getJson('/api/plans')
+            ->assertStatus(200)
+            ->assertJsonCount(1)
+            ->assertJsonFragment([
+                'name' => 'Starter',
+                'description' => 'Descriere plan Starter',
+            ])
+            ->assertJsonMissing(['name' => 'Archived Plan']);
+
+        $this->actingAs($user)
+            ->postJson('/api/plans/select', ['plan_id' => $deletedPlan->id])
+            ->assertStatus(404);
+
+        $this->actingAs($user)
+            ->postJson('/api/plans/select', ['plan_id' => $activePlan->id])
+            ->assertStatus(200);
+    }
+
     public function test_promotion_is_blocked_when_plan_max_items_limit_is_reached(): void
     {
         $owner = User::factory()->create(['role' => 'user']);

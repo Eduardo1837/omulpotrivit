@@ -343,7 +343,7 @@ Transforms a `Listing` model into a localized Romanian JSON payload:
 | `listings/index.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/listings', '/api/categories')` | `ListingController@index` |
 | `listings/details.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/listings/{id}', '/api/reviews')` | `ListingController@details` |
 | `listings/my-listings.blade.php` | `<x-app-layout>` (Tailwind) + quota summary + client-side `fetch('/api/listings/*')` | `ListingController@myListings` |
-| `plans/index.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/plans', 'POST /api/plans/select')` | `ListingController@plans` (`/my-plan`) |
+| `plans/index.blade.php` | `<x-app-layout>` (Tailwind) + price-tiered list + client-side `fetch('/api/plans', 'POST /api/plans/select')` | `ListingController@plans` (`/my-plan`) |
 | `listings/create.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/categories', 'POST /api/listings')` | `ListingController@create` |
 | `listings/edit.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/listings/{id}/own', 'PUT /api/listings/{id}')` | `ListingController@edit` |
 | `reviews/index.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/reviews')` | `ReviewController@index` |
