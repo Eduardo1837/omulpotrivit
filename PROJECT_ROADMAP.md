@@ -270,6 +270,7 @@ erDiagram
 | `GET` | `/api/reviews` | *None* | `Api\ReviewController@index` | Returns paginated visible reviews (`200` JSON) |
 | `GET` | `/api/my-listings` | `auth:sanctum` | `Api\ListingController@myListings` | Returns authenticated user's listings, `can_create_more`, `active_plan_id`, and plans |
 | `GET` | `/api/listings/{id}/own` | `auth:sanctum` | `Api\ListingController@showOwn` | Returns owner's listing (including inactive) for edit form; enforces ownership (`403`) |
+| `GET` | `/api/listings/{id}/analytics` | `auth:sanctum` | `Api\ListingController@analytics` | Returns 7-day home impressions vs. clicks, CTR %, avg home position, and plan priority for promoted owner listings |
 | `POST` | `/api/listings` | `auth:sanctum` | `Api\ListingController@store` | Validates, checks quota, & creates via `ListingService`; returns `201` JSON (`403` for admin/quota) |
 | `PUT` | `/api/listings/{id}` | `auth:sanctum` | `Api\ListingController@update` | Partial (`sometimes\|required`) update via `ListingService` with ownership check; returns `200`, `403`, or `404` |
 | `POST` | `/api/listings/{id}/promote` | `auth:sanctum` | `Api\ListingController@promote` | Promotes owner's listing via `ListingService::promoteListing()`; returns `200`, `403`, `404`, or `422` |

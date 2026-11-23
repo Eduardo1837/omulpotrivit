@@ -173,31 +173,48 @@
 
                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
-                                        <div class="text-xs text-gray-500 font-medium">Vizualizări totale</div>
-                                        <div class="text-2xl font-black text-indigo-600 mt-1">{{ $listing->views_count ?? 0 }}</div>
-                                        <div class="text-xs text-emerald-600 mt-1 font-semibold flex items-center gap-0.5">
-                                            ↑ +35% săptămâna aceasta
+                                        <div class="text-xs text-gray-500 font-medium">Afișări Pagina Principală</div>
+                                        <div id="stat-impressions-{{ $listing->id }}" class="text-2xl font-black text-indigo-600 mt-1">—</div>
+                                        <div class="text-xs text-gray-400 mt-1">Apariții în Top 6 Home</div>
+                                    </div>
+
+                                    <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
+                                        <div class="text-xs text-gray-500 font-medium">Click-uri / Vizualizări</div>
+                                        <div id="stat-clicks-{{ $listing->id }}" class="text-2xl font-black text-emerald-600 mt-1">{{ $listing->views_count ?? 0 }}</div>
+                                        <div class="text-xs text-gray-400 mt-1">Accesări pagină detalii</div>
+                                    </div>
+
+                                    <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
+                                        <div class="text-xs text-gray-500 font-medium">Rată de Click (CTR)</div>
+                                        <div id="stat-ctr-{{ $listing->id }}" class="text-2xl font-black text-amber-500 mt-1">—</div>
+                                        <div class="text-xs text-gray-400 mt-1">Click-uri raportate la afișări</div>
+                                    </div>
+
+                                    <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
+                                        <div class="text-xs text-gray-500 font-medium">Poziție Medie Home</div>
+                                        <div id="stat-pos-{{ $listing->id }}" class="text-2xl font-black text-emerald-600 mt-1">—</div>
+                                        <div id="stat-plan-priority-{{ $listing->id }}" class="text-xs text-emerald-600 mt-1 font-semibold">Prioritate după plan</div>
+                                    </div>
+                                </div>
+
+                                <!-- Grafic Evoluție 7 Zile: Afișări Pagina Principală vs. Click-uri -->
+                                <div class="mt-4 bg-white p-5 rounded-xl border border-gray-200/80 shadow-xs">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                                        <div>
+                                            <h5 class="text-xs font-bold uppercase tracking-wider text-gray-700">Evoluție Ultimele 7 Zile (Afișări Home vs. Click-uri)</h5>
+                                            <p class="text-xs text-gray-400">Planurile mai scumpe au prioritate la afișarea pe prima pagină</p>
+                                        </div>
+                                        <div class="flex items-center gap-4 text-xs font-semibold">
+                                            <span class="inline-flex items-center gap-1.5 text-indigo-600">
+                                                <span class="w-3 h-3 rounded-sm bg-indigo-500 inline-block"></span> Afișări Pagina Principală
+                                            </span>
+                                            <span class="inline-flex items-center gap-1.5 text-emerald-600">
+                                                <span class="w-3 h-3 rounded-sm bg-emerald-500 inline-block"></span> Click-uri pe Anunț
+                                            </span>
                                         </div>
                                     </div>
-
-                                    <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
-                                        <div class="text-xs text-gray-500 font-medium">Recenzii primite</div>
-                                        <div class="text-2xl font-black text-gray-800 mt-1">{{ $listing->reviews->count() }}</div>
-                                        <div class="text-xs text-gray-400 mt-1">de la clienți verificați</div>
-                                    </div>
-
-                                    <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
-                                        <div class="text-xs text-gray-500 font-medium">Rating Mediu</div>
-                                        <div class="text-2xl font-black text-amber-500 mt-1">
-                                            {{ $listing->reviews->avg('rating') ? number_format($listing->reviews->avg('rating'), 1) . ' ★' : '—' }}
-                                        </div>
-                                        <div class="text-xs text-gray-400 mt-1">Scor satisfacție</div>
-                                    </div>
-
-                                    <div class="bg-white p-4 rounded-xl border border-gray-200/80 shadow-xs">
-                                        <div class="text-xs text-gray-500 font-medium">Poziționare Căutare</div>
-                                        <div class="text-2xl font-black text-emerald-600 mt-1">TOP 3</div>
-                                        <div class="text-xs text-emerald-600 mt-1 font-semibold">Prioritate maximă</div>
+                                    <div id="chart-container-{{ $listing->id }}" class="h-44 flex items-end justify-between gap-2 pt-6 px-2 border-b border-gray-100">
+                                        <div class="w-full text-center text-xs text-gray-400 py-12">Se încarcă graficul...</div>
                                     </div>
                                 </div>
                             </div>
@@ -594,5 +611,79 @@
                 showApiFeedback('Eroare de rețea la ștergerea anunțului.', true);
             }
         }
+
+        async function loadListingAnalytics(listingId) {
+            const chartEl = document.getElementById(`chart-container-${listingId}`);
+            if (!chartEl) return;
+
+            try {
+                const response = await fetch(`/api/listings/${listingId}/analytics`, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) {
+                    chartEl.innerHTML = '<div class="w-full text-center text-xs text-gray-400 py-12">Statisticile nu sunt disponibile momentan.</div>';
+                    return;
+                }
+
+                const data = await response.json();
+
+                const impEl = document.getElementById(`stat-impressions-${listingId}`);
+                const clicksEl = document.getElementById(`stat-clicks-${listingId}`);
+                const ctrEl = document.getElementById(`stat-ctr-${listingId}`);
+                const posEl = document.getElementById(`stat-pos-${listingId}`);
+                const planEl = document.getElementById(`stat-plan-priority-${listingId}`);
+
+                if (impEl) impEl.textContent = data.total_home_impressions ?? 0;
+                if (clicksEl) clicksEl.textContent = data.total_clicks ?? 0;
+                if (ctrEl) ctrEl.textContent = `${data.ctr_percent ?? 0}%`;
+                if (posEl) posEl.textContent = data.avg_home_position ? `#${data.avg_home_position}` : '—';
+                if (planEl && data.plan_name) {
+                    planEl.textContent = `Plan ${data.plan_name} (${Number(data.plan_price ?? 0).toFixed(0)} RON)`;
+                }
+
+                const series = Array.isArray(data.daily_series) ? data.daily_series : [];
+                const maxVal = Math.max(
+                    1,
+                    ...series.map(d => Math.max(Number(d.home_impressions || 0), Number(d.clicks || 0)))
+                );
+
+                chartEl.innerHTML = series.map(day => {
+                    const imp = Number(day.home_impressions || 0);
+                    const clk = Number(day.clicks || 0);
+                    const impHeight = Math.max(4, Math.round((imp / maxVal) * 110));
+                    const clkHeight = Math.max(4, Math.round((clk / maxVal) * 110));
+
+                    return `
+                        <div class="flex-1 flex flex-col items-center justify-end h-full min-w-0">
+                            <div class="flex items-end justify-center gap-1 w-full h-32">
+                                <div class="flex flex-col items-center justify-end">
+                                    <span class="text-[10px] font-bold text-indigo-600 mb-0.5">${imp}</span>
+                                    <div class="w-3 sm:w-4 bg-indigo-500 rounded-t transition-all" style="height: ${impHeight}px" title="Afișări: ${imp}"></div>
+                                </div>
+                                <div class="flex flex-col items-center justify-end">
+                                    <span class="text-[10px] font-bold text-emerald-600 mb-0.5">${clk}</span>
+                                    <div class="w-3 sm:w-4 bg-emerald-500 rounded-t transition-all" style="height: ${clkHeight}px" title="Click-uri: ${clk}"></div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] text-gray-500 mt-1.5 truncate w-full text-center">${day.label}</span>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                chartEl.innerHTML = '<div class="w-full text-center text-xs text-rose-400 py-12">Eroare la încărcarea graficului.</div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            @if(!($isAdminPreview ?? false))
+                @foreach($listings as $listing)
+                    @if($listing->is_featured)
+                        loadListingAnalytics({{ $listing->id }});
+                    @endif
+                @endforeach
+            @endif
+        });
     </script>
 </x-app-layout>

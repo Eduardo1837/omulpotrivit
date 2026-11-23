@@ -6,7 +6,9 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\Listing;
+use App\Models\Promotion;
 use App\Models\PromotionPlan;
+use App\Models\StatEvent;
 use App\Models\Tag;
 use Illuminate\Support\Facades\Hash;
 
@@ -209,6 +211,45 @@ class DatabaseSeeder extends Seeder
                 ['name' => $plan['name']],
                 $plan
             );
+        }
+
+        // --- 5. Creăm Promovări active și evenimente de analytics (ultimele 7 zile) ---
+        $businessPlan = PromotionPlan::where('name', 'Business 30 Days')->first();
+        $featuredListing = Listing::where('is_featured', true)->first();
+
+        if ($businessPlan && $featuredListing) {
+            Promotion::create([
+                'plan_id' => $businessPlan->id,
+                'user_id' => $featuredListing->provider_id,
+                'listing_id' => $featuredListing->id,
+                'startsAt' => now()->subDays(6),
+                'endsAt' => now()->addDays(24),
+                'status' => 'ACTIVE',
+            ]);
+
+            $sampleImpressions = [8, 12, 10, 15, 18, 14, 21];
+            $sampleClicks = [2, 3, 2, 4, 5, 4, 6];
+
+            foreach ($sampleImpressions as $offset => $impCount) {
+                $day = now()->subDays(6 - $offset);
+                for ($i = 0; $i < $impCount; $i++) {
+                    $ev = StatEvent::create([
+                        'listing_id' => $featuredListing->id,
+                        'eventType' => 'home_impression',
+                        'resultPosition' => 1,
+                    ]);
+                    $ev->forceFill(['created_at' => $day, 'updated_at' => $day])->saveQuietly();
+                }
+                for ($c = 0; $c < $sampleClicks[$offset]; $c++) {
+                    $ev = StatEvent::create([
+                        'listing_id' => $featuredListing->id,
+                        'eventType' => 'click',
+                    ]);
+                    $ev->forceFill(['created_at' => $day, 'updated_at' => $day])->saveQuietly();
+                }
+            }
+
+            $featuredListing->update(['views_count' => array_sum($sampleClicks)]);
         }
     }
 }
