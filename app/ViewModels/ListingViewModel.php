@@ -19,6 +19,8 @@ class ListingViewModel
     public string $categoryName;
     public bool $isFeatured;
     public string $status;
+    public ?string $imageUrl;
+    public array $images;
 
     public function __construct(Listing $listing)
     {
@@ -35,5 +37,9 @@ class ListingViewModel
         $this->categoryName = $listing->category ? $listing->category->name : 'Fără categorie';
         $this->isFeatured = (bool) $listing->is_featured;
         $this->status = ucfirst($listing->status ?? 'activ');
+        $this->images = $listing->relationLoaded('images')
+            ? $listing->images->map(fn ($img) => ['id' => $img->id, 'url' => $img->url])->values()->all()
+            : [];
+        $this->imageUrl = $this->images[0]['url'] ?? $listing->imageUrl;
     }
 }

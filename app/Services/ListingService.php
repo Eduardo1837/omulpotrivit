@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Accessors\ListingAccessor;
+use App\Accessors\ListingImageAccessor;
 use App\Accessors\PromotionPlanAccessor;
 use App\Events\ListingPromoted;
 use App\Models\Listing;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ListingService
 {
@@ -21,7 +23,8 @@ class ListingService
 
     public function __construct(
         protected ListingAccessor $listingAccessor,
-        protected PromotionPlanAccessor $promotionPlanAccessor
+        protected PromotionPlanAccessor $promotionPlanAccessor,
+        protected ListingImageAccessor $listingImageAccessor
     ) {
     }
 
@@ -547,6 +550,66 @@ class ListingService
     {
         Cache::forget(self::CACHE_KEY_HOME_LISTINGS);
         Cache::forget(self::CACHE_KEY_ACTIVE_LISTINGS);
+    }
+
+    /**
+     * Încarcă și salvează imagini pentru o listare pe discul public.
+     */
+    public function uploadListingImages(int|string $listingId, array $uploadedFiles): void
+    {
+        $paths = [];
+
+        foreach ($uploadedFiles as $file) {
+            if ($file && $file->isValid()) {
+                $paths[] = $file->store('listings', 'public');
+            }
+        }
+
+        if ($paths === []) {
+            return;
+        }
+
+        $this->listingImageAccessor->createMany($listingId, $paths);
+        $this->invalidateListingsCache();
+
+        Log::info('Listing images uploaded', [
+            'listing_id' => $listingId,
+            'count' => count($paths),
+        ]);
+    }
+
+    /**
+     * Șterge o imagine a unei listări (verificând proprietarul sau rolul admin).
+     */
+    public function deleteListingImage(int|string $listingId, int|string $imageId, int $actingUserId, bool $isAdmin = false): bool
+    {
+        $image = $this->listingImageAccessor->getById($imageId);
+        if (!$image || (int) $image->listing_id !== (int) $listingId) {
+            return false;
+        }
+
+        if (!$isAdmin && (int) ($image->listing?->provider_id ?? 0) !== $actingUserId) {
+            Log::warning('Unauthorized listing image deletion attempt', [
+                'listing_id' => $listingId,
+                'image_id' => $imageId,
+                'acting_user_id' => $actingUserId,
+            ]);
+            return false;
+        }
+
+        Storage::disk('public')->delete($image->path);
+        $deleted = $this->listingImageAccessor->delete($imageId);
+
+        if ($deleted) {
+            $this->invalidateListingsCache();
+            Log::info('Listing image deleted', [
+                'listing_id' => $listingId,
+                'image_id' => $imageId,
+                'acting_user_id' => $actingUserId,
+            ]);
+        }
+
+        return $deleted;
     }
 
     /**

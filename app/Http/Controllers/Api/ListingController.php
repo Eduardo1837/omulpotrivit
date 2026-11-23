@@ -158,12 +158,20 @@ class ListingController extends Controller
             'city'        => 'required|string|max:100',
             'category_id' => 'required|exists:categories,id',
             'is_featured' => 'nullable|boolean',
+            'images'      => 'nullable|array|max:8',
+            'images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $validated['priceType'] = $validated['priceType'] ?? 'fix';
         $validated['is_featured'] = $request->boolean('is_featured');
+        unset($validated['images']);
 
         $listing = $this->listingService->createListing($validated, $userId);
+
+        if ($request->hasFile('images')) {
+            $this->listingService->uploadListingImages($listing->id, $request->file('images'));
+            $listing = $this->listingService->getListingById($listing->id) ?? $listing;
+        }
 
         return response()->json(new ListingResource($listing), 201);
     }
@@ -197,17 +205,45 @@ class ListingController extends Controller
             'city'        => 'sometimes|required|string|max:100',
             'category_id' => 'sometimes|required|exists:categories,id',
             'is_featured' => 'nullable|boolean',
+            'images'      => 'nullable|array|max:8',
+            'images.*'    => 'image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         if ($request->has('is_featured')) {
             $validated['is_featured'] = $request->boolean('is_featured');
         }
+        unset($validated['images']);
 
         $this->listingService->updateListing($id, $validated, $userId);
+
+        if ($request->hasFile('images')) {
+            $this->listingService->uploadListingImages($id, $request->file('images'));
+        }
 
         $updatedListing = $this->listingService->getListingById($id);
 
         return response()->json(new ListingResource($updatedListing), 200);
+    }
+
+    /**
+     * DELETE /api/listings/{id}/images/{imageId}
+     * Șterge o imagine a anunțului deținut de utilizator (sau admin)
+     */
+    public function destroyImage(int|string $id, int|string $imageId): JsonResponse
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['message' => 'Neautentificat.'], 401);
+        }
+
+        $isAdmin = auth()->user()?->role === 'admin';
+        $deleted = $this->listingService->deleteListingImage($id, $imageId, $userId, $isAdmin);
+
+        if (!$deleted) {
+            return response()->json(['message' => 'Imaginea nu a fost găsită sau nu ai permisiunea să o ștergi.'], 403);
+        }
+
+        return response()->json(['message' => 'Imaginea a fost ștearsă.'], 200);
     }
 
     /**

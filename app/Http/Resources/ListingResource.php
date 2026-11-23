@@ -12,6 +12,13 @@ class ListingResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $images = $this->relationLoaded('images')
+            ? $this->images->map(fn ($img) => [
+                'id' => $img->id,
+                'url' => $img->url,
+            ])->values()->all()
+            : [];
+
         return [
             'id'             => $this->id,
             'titlu'          => $this->title,
@@ -29,6 +36,8 @@ class ListingResource extends JsonResource
             'este_promovat'  => (bool) $this->is_featured,
             'status'         => ucfirst($this->status ?? 'activ'),
             'views_count'    => (int) ($this->views_count ?? 0),
+            'image_url'      => $images[0]['url'] ?? $this->imageUrl,
+            'images'         => $images,
         ];
     }
 }

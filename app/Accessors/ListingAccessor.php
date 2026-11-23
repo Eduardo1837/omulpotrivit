@@ -20,7 +20,7 @@ class ListingAccessor
      */
     public function getActiveAll(): Collection
     {
-        return Listing::with('category')
+        return Listing::with(['category', 'images'])
             ->where('status', 'activ')
             ->orderByDesc('is_featured')
             ->latest()
@@ -32,7 +32,7 @@ class ListingAccessor
      */
     public function getActiveHomeListings(int $limit = 6): Collection
     {
-        return Listing::with('category')
+        return Listing::with(['category', 'images'])
             ->where('status', 'activ')
             ->orderByDesc('is_featured')
             ->latest()
@@ -41,19 +41,19 @@ class ListingAccessor
     }
 
     /**
-     * Găsește o listare după ID împreună cu datele categoriei și ale furnizorului.
+     * Găsește o listare după ID împreună cu datele categoriei, ale furnizorului și imaginile.
      */
     public function getById(int|string $id): ?Listing
     {
-        return Listing::with(['category', 'provider'])->find($id);
+        return Listing::with(['category', 'provider', 'images'])->find($id);
     }
 
     /**
-     * Găsește o listare activă după ID împreună cu datele categoriei și ale furnizorului.
+     * Găsește o listare activă după ID împreună cu datele categoriei, ale furnizorului și imaginile.
      */
     public function getActiveById(int|string $id): ?Listing
     {
-        return Listing::with(['category', 'provider'])
+        return Listing::with(['category', 'provider', 'images'])
             ->where('status', 'activ')
             ->find($id);
     }
@@ -86,6 +86,7 @@ class ListingAccessor
     {
         $query = Listing::with([
             'category',
+            'images',
             'reviews' => fn ($q) => $q->where('is_hidden', false),
         ])
             ->where('provider_id', $userId)
