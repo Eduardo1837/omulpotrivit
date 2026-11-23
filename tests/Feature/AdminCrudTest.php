@@ -178,6 +178,16 @@ class AdminCrudTest extends TestCase
             ])
             ->assertRedirect(route('admin.listings.index'));
 
-        $this->assertDatabaseMissing('listings', ['id' => $listing->id]);
+        $this->assertDatabaseHas('listings', [
+            'id' => $listing->id,
+            'status' => 'deleted',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.listings.index'))
+            ->assertOk()
+            ->assertSee('Istoric Anunțuri Șterse')
+            ->assertSee('Admin Updated Listing')
+            ->assertSee('Șters');
     }
 }

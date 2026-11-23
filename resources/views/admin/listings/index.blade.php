@@ -115,6 +115,47 @@
                     </tbody>
                 </table>
             </div>
+
+            @if(isset($deletedListings) && $deletedListings->isNotEmpty())
+                <div class="mt-8 bg-white overflow-hidden shadow-sm sm:rounded-xl border border-gray-200/80 p-6 overflow-x-auto">
+                    <div class="mb-4 flex items-center justify-between gap-2">
+                        <div>
+                            <h3 class="text-base font-bold text-gray-800">Istoric Anunțuri Șterse</h3>
+                            <p class="text-xs text-gray-500">Anunțurile șterse logic, păstrate în istoric pentru audit și evidență.</p>
+                        </div>
+                        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                            {{ $deletedListings->count() }} {{ $deletedListings->count() === 1 ? 'anunț șters' : 'anunțuri șterse' }}
+                        </span>
+                    </div>
+
+                    <table class="min-w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600">
+                                <th class="py-2.5 px-4 uppercase font-semibold text-xs rounded-tl-lg">ID</th>
+                                <th class="py-2.5 px-4 uppercase font-semibold text-xs">Titlu</th>
+                                <th class="py-2.5 px-4 uppercase font-semibold text-xs">Categorie</th>
+                                <th class="py-2.5 px-4 uppercase font-semibold text-xs">Furnizor</th>
+                                <th class="py-2.5 px-4 uppercase font-semibold text-xs rounded-tr-lg">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-600 divide-y divide-gray-100">
+                            @foreach($deletedListings as $deletedListing)
+                                <tr class="bg-rose-50/30 opacity-80">
+                                    <td class="py-3 px-4 font-mono text-xs text-gray-500">{{ $deletedListing->id }}</td>
+                                    <td class="py-3 px-4 font-semibold text-gray-500 line-through">{{ $deletedListing->title }}</td>
+                                    <td class="py-3 px-4 text-sm text-gray-500">{{ $deletedListing->category->name ?? 'N/A' }}</td>
+                                    <td class="py-3 px-4 text-sm text-gray-500">{{ $deletedListing->provider->name ?? 'N/A' }}</td>
+                                    <td class="py-3 px-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+                                            Șters
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
         </div>
     </div>
 

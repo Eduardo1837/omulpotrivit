@@ -119,9 +119,11 @@ class AdminController extends Controller
 
     public function listingsIndex()
     {
-        $listings = $this->listingService->getAllListingsForAdmin();
+        $allListings = $this->listingService->getAllListingsForAdmin();
+        $listings = $allListings->where('status', '!=', 'deleted')->values();
+        $deletedListings = $allListings->where('status', 'deleted')->values();
 
-        return view('admin.listings.index', compact('listings'));
+        return view('admin.listings.index', compact('listings', 'deletedListings'));
     }
 
     public function editListing($id)
@@ -179,15 +181,15 @@ class AdminController extends Controller
     {
         if (trim((string) $request->input('confirm_delete')) !== 'delete') {
             return redirect()->route('admin.listings.index')
-                ->with('error', 'Type "delete" to confirm permanent deletion.');
+                ->with('error', 'Type "delete" to confirm deletion.');
         }
 
-        $deleted = $this->listingService->forceDeleteListing($id, auth()->id());
+        $deleted = $this->listingService->markListingAsDeleted($id, auth()->id());
         if (!$deleted) {
             abort(404);
         }
 
-        return redirect()->route('admin.listings.index')->with('success', 'Listing permanently deleted.');
+        return redirect()->route('admin.listings.index')->with('success', 'Listing soft-deleted successfully.');
     }
 
     public function listingReviews($id)
