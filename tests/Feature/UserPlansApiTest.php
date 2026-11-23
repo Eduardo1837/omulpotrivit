@@ -361,6 +361,47 @@ class UserPlansApiTest extends TestCase
         ]);
     }
 
+    public function test_admin_soft_deleted_plan_appears_at_bottom_marked_as_deleted(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $deletedPlan = PromotionPlan::create([
+            'name' => 'Cheap Old Plan',
+            'price' => 5,
+            'currency' => 'RON',
+            'durationDays' => 7,
+            'maxItems' => 1,
+        ]);
+
+        $activePlan = PromotionPlan::create([
+            'name' => 'Business 30 Days',
+            'price' => 79,
+            'currency' => 'RON',
+            'durationDays' => 30,
+            'maxItems' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete("/admin/plans/{$deletedPlan->id}")
+            ->assertRedirect(route('admin.plans.index'));
+
+        $this->assertDatabaseHas('promotion_plans', [
+            'id' => $deletedPlan->id,
+            'is_deleted' => 1,
+        ]);
+
+        // Public API excludes the soft-deleted plan
+        $this->getJson('/api/plans')
+            ->assertStatus(200)
+            ->assertJsonCount(1)
+            ->assertJsonMissing(['name' => 'Cheap Old Plan']);
+
+        // Admin table renders active plan before the soft-deleted plan marked as Șters
+        $response = $this->actingAs($admin)->get('/admin/plans');
+        $response->assertStatus(200)
+            ->assertSeeInOrder(['Business 30 Days', 'Cheap Old Plan', 'Șters']);
+    }
+
     public function test_promotion_is_blocked_when_plan_max_items_limit_is_reached(): void
     {
         $owner = User::factory()->create(['role' => 'user']);

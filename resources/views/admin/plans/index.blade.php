@@ -54,10 +54,11 @@
                         @forelse($plans as $plan)
                             @php
                                 $isPaid = (float) $plan->price > 0;
+                                $isDeleted = (bool) $plan->is_deleted;
                             @endphp
-                            <tr class="hover:bg-gray-50 transition">
+                            <tr class="transition {{ $isDeleted ? 'bg-rose-50/50 opacity-75' : 'hover:bg-gray-50' }}">
                                 <td class="py-3 px-4 font-mono text-xs text-gray-500">{{ $plan->id }}</td>
-                                <td class="py-3 px-4 font-semibold text-gray-900">{{ $plan->name }}</td>
+                                <td class="py-3 px-4 font-semibold {{ $isDeleted ? 'text-gray-500 line-through' : 'text-gray-900' }}">{{ $plan->name }}</td>
                                 <td class="py-3 px-4">
                                     @if($isPaid)
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
@@ -85,7 +86,11 @@
                                     @endif
                                 </td>
                                 <td class="py-3 px-4">
-                                    @if($plan->is_hidden)
+                                    @if($isDeleted)
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+                                            Șters
+                                        </span>
+                                    @elseif($plan->is_hidden)
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-700">
                                             Ascuns
                                         </span>
@@ -96,27 +101,31 @@
                                     @endif
                                 </td>
                                 <td class="py-3 px-4">
-                                    <div class="flex items-center gap-2">
-                                        <a href="{{ route('admin.plans.edit', $plan->id) }}" class="bg-amber-500 hover:bg-amber-600 text-white py-1 px-3 rounded text-xs font-semibold transition">
-                                            Editează
-                                        </a>
+                                    @if($isDeleted)
+                                        <span class="text-xs font-medium text-rose-600 italic">Plan șters</span>
+                                    @else
+                                        <div class="flex items-center gap-2">
+                                            <a href="{{ route('admin.plans.edit', $plan->id) }}" class="bg-amber-500 hover:bg-amber-600 text-white py-1 px-3 rounded text-xs font-semibold transition">
+                                                Editează
+                                            </a>
 
-                                        <form action="{{ route('admin.plans.toggle', $plan->id) }}" method="POST">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="py-1 px-3 rounded text-xs font-semibold transition {{ $plan->is_hidden ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-gray-600 hover:bg-gray-700 text-white' }}">
-                                                {{ $plan->is_hidden ? 'Afișează' : 'Ascunde' }}
-                                            </button>
-                                        </form>
+                                            <form action="{{ route('admin.plans.toggle', $plan->id) }}" method="POST">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="py-1 px-3 rounded text-xs font-semibold transition {{ $plan->is_hidden ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-gray-600 hover:bg-gray-700 text-white' }}">
+                                                    {{ $plan->is_hidden ? 'Afișează' : 'Ascunde' }}
+                                                </button>
+                                            </form>
 
-                                        <form action="{{ route('admin.plans.destroy', $plan->id) }}" method="POST" onsubmit="return confirm('Sigur dorești să ștergi acest plan?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded text-xs font-semibold transition">
-                                                Șterge
-                                            </button>
-                                        </form>
-                                    </div>
+                                            <form action="{{ route('admin.plans.destroy', $plan->id) }}" method="POST" onsubmit="return confirm('Sigur dorești să ștergi acest plan?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded text-xs font-semibold transition">
+                                                    Șterge
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @endif
                                 </td>
                             </tr>
                         @empty

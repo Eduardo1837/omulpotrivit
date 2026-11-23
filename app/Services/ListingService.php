@@ -150,16 +150,16 @@ class ListingService
     }
 
     /**
-     * Returnează planurile de promovare disponibile (din cache pentru cele vizibile).
+     * Returnează planurile de promovare disponibile (din cache pentru cele vizibile și neșterse).
      */
-    public function getPromotionPlans(bool $visibleOnly = true): Collection
+    public function getPromotionPlans(bool $visibleOnly = true, bool $includeDeleted = false): Collection
     {
-        if (!$visibleOnly) {
-            return $this->promotionPlanAccessor->getAll(visibleOnly: false);
+        if (!$visibleOnly || $includeDeleted) {
+            return $this->promotionPlanAccessor->getAll(visibleOnly: $visibleOnly, includeDeleted: $includeDeleted);
         }
 
         return Cache::remember(self::CACHE_KEY_PROMOTION_PLANS, self::CACHE_TTL_SECONDS, function () {
-            return $this->promotionPlanAccessor->getAll(visibleOnly: true);
+            return $this->promotionPlanAccessor->getAll(visibleOnly: true, includeDeleted: false);
         });
     }
 
@@ -613,23 +613,16 @@ class ListingService
     }
 
     /**
-     * Șterge un plan de promovare dacă nu are promovări asociate.
+     * Șterge logic un plan de promovare (is_deleted = true), păstrând istoricul promovărilor.
      */
     public function deletePromotionPlan(int|string $id): bool
     {
-        if ($this->promotionPlanAccessor->hasPromotions($id)) {
-            Log::warning('Promotion plan deletion blocked: plan has associated promotions', [
-                'plan_id' => $id,
-            ]);
-            return false;
-        }
-
         $deleted = $this->promotionPlanAccessor->delete($id);
 
         if ($deleted) {
             $this->invalidatePromotionPlansCache();
 
-            Log::info('Promotion plan deleted', [
+            Log::info('Promotion plan soft deleted', [
                 'plan_id' => $id,
             ]);
         }

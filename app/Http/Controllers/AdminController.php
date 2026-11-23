@@ -305,7 +305,7 @@ class AdminController extends Controller
 
     public function plansIndex()
     {
-        $plans = $this->listingService->getPromotionPlans(visibleOnly: false);
+        $plans = $this->listingService->getPromotionPlans(visibleOnly: false, includeDeleted: true);
 
         return view('admin.plans.index', compact('plans'));
     }
