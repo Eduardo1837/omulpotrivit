@@ -128,6 +128,7 @@
     </div>
 
     @if(auth()->user()?->role !== 'admin')
+        <x-webp-converter-script />
         <script>
             document.addEventListener('DOMContentLoaded', async () => {
                 const form = document.getElementById('create-listing-form');
@@ -197,7 +198,9 @@
                         formData.append('category_id', categorySelect?.value ?? '');
                         formData.append('is_featured', document.getElementById('is_featured')?.checked ? '1' : '0');
 
-                        Array.from(imagesInput?.files || []).forEach((file) => {
+                        const selectedFiles = Array.from(imagesInput?.files || []);
+                        const webpFiles = await Promise.all(selectedFiles.map((file) => window.convertImageToWebp(file)));
+                        webpFiles.forEach((file) => {
                             formData.append('images[]', file);
                         });
 
