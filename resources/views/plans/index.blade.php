@@ -59,77 +59,117 @@
                 <button type="button" onclick="closePaymentModal()" class="text-gray-400 hover:text-white transition text-xl leading-none">&times;</button>
             </div>
 
-            <div class="p-6 space-y-5">
-                <!-- Order Summary -->
-                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-gray-500">Total de plată</p>
-                        <p id="paymentPlanMeta" class="text-xs font-medium text-gray-700 mt-0.5"></p>
-                    </div>
-                    <span id="paymentPlanAmount" class="text-xl font-black text-gray-900">0.00 RON</span>
-                </div>
-
-                <!-- Payment Method Selector -->
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Alege metoda de plată</p>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button type="button"
-                                id="methodBtn-card"
-                                onclick="selectPaymentMethod('card')"
-                                class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 border-amber-500 bg-amber-50 text-amber-900 text-xs font-bold transition">
-                            💳 Card Bancar
-                        </button>
-                        <button type="button"
-                                id="methodBtn-google_play"
-                                onclick="selectPaymentMethod('google_play')"
-                                class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs font-bold transition">
-                            ▶ Google Play
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Card Mock Form -->
-                <div id="paymentSection-card" class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Număr card (demo)</label>
-                        <input type="text" value="4242 •••• •••• 4242" class="w-full rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500" />
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
+            <div class="p-6">
+                <!-- Payment Form State -->
+                <div id="paymentFormState" class="space-y-5">
+                    <!-- Order Summary -->
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 flex items-center justify-between">
                         <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Expirare</label>
-                            <input type="text" value="12/28" class="w-full rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500" />
+                            <p class="text-xs text-gray-500">Total de plată</p>
+                            <p id="paymentPlanMeta" class="text-xs font-medium text-gray-700 mt-0.5"></p>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">CVV</label>
-                            <input type="text" value="123" class="w-full rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500" />
+                        <span id="paymentPlanAmount" class="text-xl font-black text-gray-900">0.00 RON</span>
+                    </div>
+
+                    <!-- Payment Method Selector -->
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Alege metoda de plată</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button"
+                                    id="methodBtn-card"
+                                    onclick="selectPaymentMethod('card')"
+                                    class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 border-amber-500 bg-amber-50 text-amber-900 text-xs font-bold transition">
+                                💳 Card Bancar
+                            </button>
+                            <button type="button"
+                                    id="methodBtn-google_play"
+                                    onclick="selectPaymentMethod('google_play')"
+                                    class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs font-bold transition">
+                                ▶ Google Play
+                            </button>
                         </div>
                     </div>
+
+                    <!-- Card Mock Form -->
+                    <div id="paymentSection-card" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Număr card (demo)</label>
+                            <input type="text" value="4242 •••• •••• 4242" class="w-full rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500" />
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Expirare</label>
+                                <input type="text" value="12/28" class="w-full rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">CVV</label>
+                                <input type="text" value="123" class="w-full rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Google Play Mock Section -->
+                    <div id="paymentSection-google_play" class="hidden rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-center space-y-1.5">
+                        <p class="text-sm font-bold text-emerald-900">▶ Google Play Billing</p>
+                        <p class="text-xs text-emerald-700">Plata va fi confirmată instant prin contul tău Google Play (simulare).</p>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex items-center justify-end gap-2 pt-2">
+                        <button type="button"
+                                id="cancelPaymentBtn"
+                                onclick="closePaymentModal()"
+                                class="px-4 py-2 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
+                            Anulează
+                        </button>
+                        <button type="button"
+                                id="confirmPaymentBtn"
+                                onclick="processMockPayment()"
+                                class="px-5 py-2 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition">
+                            Plătește acum
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Google Play Mock Section -->
-                <div id="paymentSection-google_play" class="hidden rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-center space-y-1.5">
-                    <p class="text-sm font-bold text-emerald-900">▶ Google Play Billing</p>
-                    <p class="text-xs text-emerald-700">Plata va fi confirmată instant prin contul tău Google Play (simulare).</p>
-                </div>
-
-                <!-- Actions -->
-                <div class="flex items-center justify-end gap-2 pt-2">
-                    <button type="button"
-                            id="cancelPaymentBtn"
-                            onclick="closePaymentModal()"
-                            class="px-4 py-2 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
-                        Anulează
-                    </button>
-                    <button type="button"
-                            id="confirmPaymentBtn"
-                            onclick="processMockPayment()"
-                            class="px-5 py-2 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition">
-                        Plătește acum
-                    </button>
+                <!-- Animated Payment Success State -->
+                <div id="paymentSuccessState" class="hidden py-6 text-center space-y-4">
+                    <div class="flex items-center justify-center gap-3">
+                        <div class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center animate-[popIn_0.4s_ease-out_forwards]">
+                            <svg class="w-9 h-9 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path class="checkmark-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <span class="text-4xl font-black text-amber-500 inline-block animate-[smileBounce_0.8s_ease-in-out_infinite]">:)</span>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-extrabold text-gray-900">Plată finalizată cu succes!</h4>
+                        <p id="paymentSuccessText" class="text-xs text-gray-500 mt-1">Noul tău plan este acum activ.</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <style>
+        @keyframes drawCheck {
+            from { stroke-dashoffset: 36; }
+            to { stroke-dashoffset: 0; }
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.4); opacity: 0; }
+            70% { transform: scale(1.12); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes smileBounce {
+            0%, 100% { transform: translateY(0) rotate(-4deg) scale(1); }
+            50% { transform: translateY(-6px) rotate(6deg) scale(1.15); }
+        }
+        .checkmark-path {
+            stroke-dasharray: 36;
+            stroke-dashoffset: 36;
+            animation: drawCheck 0.45s 0.15s ease-out forwards;
+        }
+    </style>
 
     <script>
         let selectedPlanId = @json($activePlanId ?? null);
@@ -183,6 +223,8 @@
             selectedPaymentMethod = 'card';
             selectPaymentMethod('card');
 
+            document.getElementById('paymentFormState').classList.remove('hidden');
+            document.getElementById('paymentSuccessState').classList.add('hidden');
             document.getElementById('paymentPlanTitle').textContent = `Cumpără planul ${plan.name}`;
             document.getElementById('paymentPlanAmount').textContent = `${Number(plan.price).toFixed(2)} ${plan.currency}`;
             document.getElementById('paymentPlanMeta').textContent = plan.durationDays > 0
@@ -224,12 +266,18 @@
             btn.disabled = true;
             btn.textContent = 'Se procesează plata...';
 
-            await new Promise(resolve => setTimeout(resolve, 700));
+            await new Promise(resolve => setTimeout(resolve, 650));
             const planId = pendingPaymentPlan.id;
+            const planName = pendingPaymentPlan.name;
             const method = selectedPaymentMethod;
 
             const success = await commitPlanSelection(planId, method);
             if (success) {
+                document.getElementById('paymentFormState').classList.add('hidden');
+                document.getElementById('paymentSuccessText').textContent = `Planul „${planName}” este acum activ pe contul tău.`;
+                document.getElementById('paymentSuccessState').classList.remove('hidden');
+
+                await new Promise(resolve => setTimeout(resolve, 1400));
                 closePaymentModal();
             } else {
                 btn.disabled = false;
