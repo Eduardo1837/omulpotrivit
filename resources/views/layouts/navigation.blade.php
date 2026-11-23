@@ -258,16 +258,20 @@
             init() {
                 this.fetchNotifications();
                 window.addEventListener('notifications-updated', () => this.fetchNotifications());
+                window.addEventListener('focus', () => this.fetchNotifications());
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'visible') {
                         this.fetchNotifications();
                     }
                 });
+                if (this.pollTimer) {
+                    clearInterval(this.pollTimer);
+                }
                 this.pollTimer = setInterval(() => {
                     if (document.visibilityState === 'visible') {
                         this.fetchNotifications();
                     }
-                }, 10000);
+                }, 2000);
             },
 
             async fetchNotifications() {
@@ -276,13 +280,17 @@
                 }
                 try {
                     const response = await fetch('/api/notifications', {
-                        headers: { 'Accept': 'application/json' },
+                        headers: {
+                            'Accept': 'application/json',
+                            'Cache-Control': 'no-cache',
+                        },
+                        cache: 'no-store',
                         credentials: 'same-origin',
                     });
                     if (!response.ok) return;
                     const data = await response.json();
                     this.notifications = data.notifications || [];
-                    this.unreadCount = data.unread_count || 0;
+                    this.unreadCount = Number(data.unread_count || 0);
                     this.hasLoaded = true;
                 } catch (e) {
                     // ignore transient network errors in header poll
