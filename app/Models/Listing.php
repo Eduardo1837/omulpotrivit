@@ -41,4 +41,11 @@ class Listing extends Model
     {
         return $this->hasMany(Review::class, 'listing_id');
     }
+
+    public function images()
+    {
+        return $this->hasMany(ListingImage::class, 'listing_id')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
 }
