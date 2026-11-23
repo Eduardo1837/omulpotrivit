@@ -28,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/listings', [ListingController::class, 'store']);
     Route::put('/listings/{id}', [ListingController::class, 'update'])->whereNumber('id');
     Route::post('/listings/{id}/promote', [ListingController::class, 'promote'])->whereNumber('id');
+    Route::post('/plans/select', [ListingController::class, 'selectPlan']);
     Route::patch('/listings/{id}/toggle-status', [ListingController::class, 'toggleStatus'])->whereNumber('id');
     Route::delete('/listings/{id}', [ListingController::class, 'destroy'])->whereNumber('id');
 
@@ -38,4 +39,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead'])->whereNumber('id');
+    Route::delete('/notifications', [NotificationController::class, 'destroyAll']);
 });

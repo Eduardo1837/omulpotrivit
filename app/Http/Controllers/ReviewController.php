@@ -23,7 +23,9 @@ class ReviewController extends Controller
 
     public function create()
     {
-        $listings = $this->listingService->getAllActiveListings();
+        $userId = auth()->id();
+        $listings = $this->listingService->getAllActiveListings()
+            ->reject(fn ($listing) => (int) $listing->provider_id === (int) $userId);
 
         return view('reviews.create', compact('listings'));
     }
@@ -37,6 +39,15 @@ class ReviewController extends Controller
         ]);
 
         $authorId = auth()->id();
+        $listing = $this->listingService->getActiveListingById($validated['listing_id']);
+
+        if ($listing && (int) $listing->provider_id === (int) $authorId) {
+            $redirect = $request->boolean('redirect_to_listing')
+                ? redirect()->route('listings.details', $validated['listing_id'])
+                : back();
+
+            return $redirect->with('error', 'Nu poți lăsa o recenzie propriului tău anunț.');
+        }
         $existing = $this->reviewService->getReviewsForListing($validated['listing_id'], visibleOnly: false)
             ->firstWhere('author_id', $authorId);
 

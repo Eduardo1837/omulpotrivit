@@ -50,4 +50,12 @@ class AppNotificationAccessor
             ->where('isRead', false)
             ->update(['isRead' => true]);
     }
+
+    /**
+     * Șterge toate notificările unui utilizator.
+     */
+    public function deleteAllByUserId(int|string $userId): int
+    {
+        return AppNotification::where('user_id', $userId)->delete();
+    }
 }

@@ -76,16 +76,40 @@ class ListingController extends Controller
             $listings = $this->listingService->getAdminPreviewMockupListings();
             $canCreateMore = false;
             $activePlanId = null;
+            $quotas = [
+                'current_plan' => null,
+                'free_listings_limit' => 1,
+                'free_listings_used' => 1,
+                'free_listings_left' => 0,
+                'promotions_limit' => null,
+                'promotions_used' => 1,
+                'promotions_left' => null,
+            ];
         } else {
             $userId = auth()->id();
             $listings = $this->listingService->getUserListings($userId, activeOnly: false);
             $canCreateMore = $this->listingService->canUserCreateListing($userId);
-            $activePlanId = $this->listingService->getUserActivePlanId($userId);
+            $quotas = $this->listingService->getUserQuotas($userId);
+            $activePlanId = $quotas['current_plan']?->id;
         }
 
         $promotionPlans = $this->listingService->getPromotionPlans();
 
-        return view('listings.my-listings', compact('listings', 'canCreateMore', 'promotionPlans', 'isAdminPreview', 'activePlanId'));
+        return view('listings.my-listings', compact('listings', 'canCreateMore', 'promotionPlans', 'isAdminPreview', 'activePlanId', 'quotas'));
+    }
+
+    /**
+     * Pagina dedicată pentru alegerea și gestionarea planului de promovare al utilizatorului.
+     */
+    public function plans()
+    {
+        $isAdminPreview = auth()->user()?->role === 'admin';
+        $userId = auth()->id();
+        $quotas = $isAdminPreview ? null : $this->listingService->getUserQuotas($userId);
+        $activePlanId = $quotas['current_plan']?->id ?? null;
+        $promotionPlans = $this->listingService->getPromotionPlans();
+
+        return view('plans.index', compact('promotionPlans', 'activePlanId', 'quotas', 'isAdminPreview'));
     }
 
     /**

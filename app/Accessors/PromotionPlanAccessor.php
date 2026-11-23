@@ -10,11 +10,11 @@ use Illuminate\Database\Eloquent\Collection;
 class PromotionPlanAccessor
 {
     /**
-     * Returnează planurile de promovare ordonate după preț (implicit doar cele vizibile).
+     * Returnează planurile de promovare ordonate după preț (excluzând cele șterse logic; implicit doar cele vizibile).
      */
     public function getAll(bool $visibleOnly = true): Collection
     {
-        $query = PromotionPlan::orderBy('price');
+        $query = PromotionPlan::where('is_deleted', false)->orderBy('price');
 
         if ($visibleOnly) {
             $query->where('is_hidden', false);
@@ -24,11 +24,11 @@ class PromotionPlanAccessor
     }
 
     /**
-     * Găsește un plan de promovare după ID.
+     * Găsește un plan de promovare după ID (excluzând cele șterse logic).
      */
     public function getById(int|string $id): ?PromotionPlan
     {
-        return PromotionPlan::find($id);
+        return PromotionPlan::where('is_deleted', false)->find($id);
     }
 
     /**
@@ -49,11 +49,12 @@ class PromotionPlanAccessor
     }
 
     /**
-     * Șterge un plan de promovare după ID.
+     * Șterge logic un plan de promovare după ID (is_deleted = true).
      */
     public function delete(int|string $id): bool
     {
-        return (bool) PromotionPlan::destroy($id);
+        $plan = PromotionPlan::where('is_deleted', false)->find($id);
+        return $plan ? $plan->update(['is_deleted' => true]) : false;
     }
 
     /**
@@ -119,10 +120,70 @@ class PromotionPlanAccessor
     }
 
     /**
+     * Returnează planul gratuit implicit (primul plan vizibil cu preț 0).
+     */
+    public function getFreePlan(): ?PromotionPlan
+    {
+        return PromotionPlan::where('is_deleted', false)
+            ->where('is_hidden', false)
+            ->where('price', '<=', 0)
+            ->orderBy('id')
+            ->first();
+    }
+
+    /**
+     * Setează planul activ la nivel de utilizator (fără a fi legat de un anunț specific).
+     */
+    public function setUserPlan(int $userId, PromotionPlan $plan, string $paymentMethod = 'card'): Promotion
+    {
+        Promotion::where('user_id', $userId)
+            ->whereNull('listing_id')
+            ->where('status', 'ACTIVE')
+            ->update([
+                'status' => 'REPLACED',
+                'endsAt' => now(),
+            ]);
+
+        $promotion = Promotion::create([
+            'plan_id' => $plan->id,
+            'user_id' => $userId,
+            'listing_id' => null,
+            'startsAt' => now(),
+            'endsAt' => $plan->durationDays > 0 ? now()->addDays($plan->durationDays) : null,
+            'status' => 'ACTIVE',
+        ]);
+
+        if ((float) $plan->price > 0) {
+            Payment::create([
+                'user_id' => $userId,
+                'promotion_id' => $promotion->id,
+                'amount' => $plan->price,
+                'currency' => $plan->currency ?? 'RON',
+                'method' => $paymentMethod,
+                'status' => 'COMPLETED',
+                'paidAt' => now(),
+            ]);
+        }
+
+        return $promotion;
+    }
+
+    /**
      * Returnează ID-ul ultimului plan activ selectat/folosit de utilizator.
+     * Prioritizăm abonamentul la nivel de utilizator (listing_id = null) dacă există.
      */
     public function getLatestActivePlanIdForUser(int|string $userId): ?int
     {
+        $userPlan = Promotion::where('user_id', $userId)
+            ->whereNull('listing_id')
+            ->where('status', 'ACTIVE')
+            ->latest('id')
+            ->first();
+
+        if ($userPlan) {
+            return $userPlan->plan_id;
+        }
+
         $promotion = Promotion::where('user_id', $userId)
             ->where('status', 'ACTIVE')
             ->latest('id')

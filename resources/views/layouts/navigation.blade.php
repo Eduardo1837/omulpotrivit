@@ -43,7 +43,7 @@
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-3">
                 <div x-data="notificationsBell()" x-init="init()" @click.outside="openBell = false" class="relative">
                     <button type="button"
-                            @click="openBell = !openBell; if (openBell) fetchNotifications()"
+                            @click="toggleBell()"
                             aria-label="Notificări"
                             class="relative inline-flex items-center justify-center p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,10 +64,14 @@
                         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/70">
                             <span class="text-sm font-bold text-gray-900">Notificări</span>
                             <button type="button"
-                                    x-show="unreadCount > 0"
-                                    @click="markAllRead()"
-                                    class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition">
-                                Marchează toate citite
+                                    x-show="notifications.length > 0"
+                                    @click="deleteAllNotifications()"
+                                    title="Șterge toate notificările"
+                                    aria-label="Șterge toate notificările"
+                                    class="inline-flex items-center justify-center p-1.5 rounded-md text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
                             </button>
                         </div>
 
@@ -81,33 +85,37 @@
                             </template>
 
                             <template x-for="n in notifications" :key="n.id">
-                                <div class="px-4 py-3 text-sm flex items-start justify-between gap-3"
-                                     :class="n.isRead ? 'bg-white text-gray-600' : 'bg-indigo-50/50 text-gray-900'">
+                                <div class="px-4 py-3 text-sm bg-white text-gray-700">
                                     <div class="space-y-0.5 min-w-0">
-                                        <p class="text-xs leading-relaxed break-words"
-                                           :class="n.isRead ? 'font-normal' : 'font-semibold'"
-                                           x-text="n.message"></p>
+                                        <p class="text-xs leading-relaxed break-words" x-text="n.message"></p>
                                         <p class="text-[11px] text-gray-400" x-text="formatDate(n.created_at)"></p>
                                     </div>
-                                    <template x-if="!n.isRead">
-                                        <button type="button"
-                                                @click="markRead(n.id)"
-                                                class="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-md bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 transition">
-                                            Citită
-                                        </button>
-                                    </template>
                                 </div>
                             </template>
                         </div>
                     </div>
                 </div>
 
-                <x-dropdown align="right" width="48">
+                <x-dropdown align="right" width="56">
                     <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
+                        <button class="inline-flex items-center gap-2 px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                            <span>{{ Auth::user()->name }}</span>
 
-                            <div class="ms-1">
+                            @if(Auth::user()?->role === 'admin')
+                                <span id="nav-plan-badge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700">
+                                    Admin
+                                </span>
+                            @else
+                                @php
+                                    $isPaidNavPlan = $currentUserPlan && (float) $currentUserPlan->price > 0;
+                                    $navPlanName = $currentUserPlan?->name ?? 'Gratuit';
+                                @endphp
+                                <span id="nav-plan-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold {{ $isPaidNavPlan ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-gray-100 text-gray-600 border border-gray-200' }}">
+                                    {{ $isPaidNavPlan ? '★ ' : '' }}{{ $navPlanName }}
+                                </span>
+                            @endif
+
+                            <div class="ms-0.5">
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
@@ -124,6 +132,15 @@
 
                         <x-dropdown-link :href="route('listings.my')">
                             📋 {{ __('Anunțurile mele') }}
+                        </x-dropdown-link>
+
+                        <x-dropdown-link :href="route('plans.index')" class="flex items-center justify-between gap-2">
+                            <span>⭐ {{ __('Planul meu') }}</span>
+                            @if(Auth::user()?->role !== 'admin')
+                                <span id="dropdown-plan-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ ($currentUserPlan && (float) $currentUserPlan->price > 0) ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600' }}">
+                                    {{ $currentUserPlan?->name ?? 'Gratuit' }}
+                                </span>
+                            @endif
                         </x-dropdown-link>
 
                         <x-dropdown-link :href="route('profile.edit')">
@@ -184,12 +201,23 @@
 
         <!-- Responsive Settings Options -->
         <div class="pt-4 pb-1 border-t border-gray-200">
-            <div class="px-4">
-                <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
-                <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+            <div class="px-4 flex items-center justify-between gap-2">
+                <div>
+                    <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
+                    <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+                </div>
+                @if(Auth::user()?->role !== 'admin')
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold {{ ($currentUserPlan && (float) $currentUserPlan->price > 0) ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-gray-100 text-gray-600 border border-gray-200' }}">
+                        {{ ($currentUserPlan && (float) $currentUserPlan->price > 0) ? '★ ' : '' }}{{ $currentUserPlan?->name ?? 'Gratuit' }}
+                    </span>
+                @endif
             </div>
 
             <div class="mt-3 space-y-1">
+                <x-responsive-nav-link :href="route('plans.index')" :active="request()->routeIs('plans.index')">
+                    ⭐ {{ __('Planul meu') }}
+                </x-responsive-nav-link>
+
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Profile') }}
                 </x-responsive-nav-link>
@@ -224,16 +252,30 @@
             init() {
                 this.fetchNotifications();
                 window.addEventListener('notifications-updated', () => this.fetchNotifications());
+                window.addEventListener('focus', () => this.fetchNotifications());
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'visible') {
                         this.fetchNotifications();
                     }
                 });
+                if (this.pollTimer) {
+                    clearInterval(this.pollTimer);
+                }
                 this.pollTimer = setInterval(() => {
                     if (document.visibilityState === 'visible') {
                         this.fetchNotifications();
                     }
-                }, 10000);
+                }, 2000);
+            },
+
+            async toggleBell() {
+                this.openBell = !this.openBell;
+                if (!this.openBell) return;
+
+                await this.fetchNotifications();
+                if (this.unreadCount > 0) {
+                    await this.markAllRead();
+                }
             },
 
             async fetchNotifications() {
@@ -242,13 +284,17 @@
                 }
                 try {
                     const response = await fetch('/api/notifications', {
-                        headers: { 'Accept': 'application/json' },
+                        headers: {
+                            'Accept': 'application/json',
+                            'Cache-Control': 'no-cache',
+                        },
+                        cache: 'no-store',
                         credentials: 'same-origin',
                     });
                     if (!response.ok) return;
                     const data = await response.json();
                     this.notifications = data.notifications || [];
-                    this.unreadCount = data.unread_count || 0;
+                    this.unreadCount = Number(data.unread_count || 0);
                     this.hasLoaded = true;
                 } catch (e) {
                     // ignore transient network errors in header poll
@@ -282,6 +328,21 @@
                 });
                 if (response.ok) {
                     await this.fetchNotifications();
+                }
+            },
+
+            async deleteAllNotifications() {
+                const response = await fetch('/api/notifications', {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    credentials: 'same-origin',
+                });
+                if (response.ok) {
+                    this.notifications = [];
+                    this.unreadCount = 0;
                 }
             },
 

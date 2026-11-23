@@ -61,6 +61,7 @@ class ListingController extends Controller
             'can_create_more' => $this->listingService->canUserCreateListing($userId),
             'active_plan_id' => $this->listingService->getUserActivePlanId($userId),
             'promotion_plans' => $this->listingService->getPromotionPlans(),
+            'quotas' => $this->listingService->getUserQuotas($userId),
         ], 200);
     }
 
@@ -221,6 +222,37 @@ class ListingController extends Controller
     }
 
     /**
+     * POST /api/plans/select
+     * Selectează/activează un plan de promovare pentru utilizatorul autentificat
+     */
+    public function selectPlan(Request $request): JsonResponse
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['message' => 'Neautentificat.'], 401);
+        }
+
+        $validated = $request->validate([
+            'plan_id' => 'required|integer|exists:promotion_plans,id',
+            'payment_method' => 'nullable|string|in:card,google_play',
+        ]);
+
+        $paymentMethod = $validated['payment_method'] ?? 'card';
+        $plan = $this->listingService->selectUserPlan($userId, (int) $validated['plan_id'], $paymentMethod);
+        if (!$plan) {
+            return response()->json(['message' => 'Planul selectat nu este disponibil.'], 404);
+        }
+
+        $quotas = $this->listingService->getUserQuotas($userId);
+
+        return response()->json([
+            'message' => "Planul „{$plan->name}” a fost activat pentru contul tău.",
+            'plan' => $plan,
+            'quotas' => $quotas,
+        ], 200);
+    }
+
+    /**
      * POST /api/listings/{id}/promote
      * Promovează un anunț al utilizatorului autentificat
      */
@@ -272,6 +304,7 @@ class ListingController extends Controller
         return response()->json([
             'message' => $message,
             'listing' => new ListingResource($updatedListing),
+            'quotas' => $this->listingService->getUserQuotas($userId),
         ], 200);
     }
 

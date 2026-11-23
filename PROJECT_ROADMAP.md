@@ -265,6 +265,7 @@ erDiagram
 | `GET` | `/api/listings` | *None* | `Api\ListingController@index` | Returns `200` with `ListingResource::collection` |
 | `GET` | `/api/listings/{id}` | *None* | `Api\ListingController@show` | Returns `200` with `ListingResource` + visible `reviews`, or `404` JSON |
 | `GET` | `/api/plans` | *None* | `Api\ListingController@plans` | Returns cached `PromotionPlan` list (`200` JSON) |
+| `POST` | `/api/plans/select` | `auth:sanctum` | `Api\ListingController@selectPlan` | Activates a `PromotionPlan` for the authenticated user and returns updated quotas |
 | `GET` | `/api/reviews` | *None* | `Api\ReviewController@index` | Returns paginated visible reviews (`200` JSON) |
 | `GET` | `/api/my-listings` | `auth:sanctum` | `Api\ListingController@myListings` | Returns authenticated user's listings, `can_create_more`, `active_plan_id`, and plans |
 | `GET` | `/api/listings/{id}/own` | `auth:sanctum` | `Api\ListingController@showOwn` | Returns owner's listing (including inactive) for edit form; enforces ownership (`403`) |
@@ -341,7 +342,8 @@ Transforms a `Listing` model into a localized Romanian JSON payload:
 | `profile/edit.blade.php` + `profile/partials/*` | `<x-app-layout>` (Tailwind) | `ProfileController@edit` |
 | `listings/index.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/listings', '/api/categories')` | `ListingController@index` |
 | `listings/details.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/listings/{id}', '/api/reviews')` | `ListingController@details` |
-| `listings/my-listings.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/plans', '/api/listings/*')` | `ListingController@myListings` |
+| `listings/my-listings.blade.php` | `<x-app-layout>` (Tailwind) + quota summary + client-side `fetch('/api/listings/*')` | `ListingController@myListings` |
+| `plans/index.blade.php` | `<x-app-layout>` (Tailwind) + price-tiered list + client-side `fetch('/api/plans', 'POST /api/plans/select')` | `ListingController@plans` (`/my-plan`) |
 | `listings/create.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/categories', 'POST /api/listings')` | `ListingController@create` |
 | `listings/edit.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/listings/{id}/own', 'PUT /api/listings/{id}')` | `ListingController@edit` |
 | `reviews/index.blade.php` | `<x-app-layout>` (Tailwind) + client-side `fetch('/api/reviews')` | `ReviewController@index` |

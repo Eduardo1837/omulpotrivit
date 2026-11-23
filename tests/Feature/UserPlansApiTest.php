@@ -146,15 +146,219 @@ class UserPlansApiTest extends TestCase
         $this->assertDatabaseMissing('listings', ['id' => $listing->id]);
     }
 
-    public function test_my_listings_page_renders_api_controls_and_plans_container(): void
+    public function test_my_listings_page_renders_api_controls_and_quotas_without_plans_grid(): void
     {
         $user = User::factory()->create(['role' => 'user']);
 
         $response = $this->actingAs($user)->get('/my-listings');
 
         $response->assertStatus(200)
+            ->assertSee('Anunțuri gratuite disponibile')
+            ->assertSee('Promovări rămase')
+            ->assertSee('/api/listings/')
+            ->assertDontSee('Planuri de Promovare Disponibile');
+    }
+
+    public function test_dedicated_plans_page_renders_and_user_can_select_plan_via_api(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+        $freePlan = PromotionPlan::create([
+            'name' => 'Free',
+            'price' => 0,
+            'currency' => 'RON',
+            'durationDays' => 0,
+            'maxItems' => 1,
+        ]);
+        $paidPlan = PromotionPlan::create([
+            'name' => 'Pro 7 Days',
+            'price' => 29,
+            'currency' => 'RON',
+            'durationDays' => 7,
+            'maxItems' => 5,
+        ]);
+
+        // Dedicated plans page renders plans container, payment modal, and current plan badge
+        $this->actingAs($user)
+            ->get('/my-plan')
+            ->assertStatus(200)
             ->assertSee('Planuri de Promovare Disponibile')
-            ->assertSee('/api/plans');
+            ->assertSee('paymentPortalModal')
+            ->assertSee('Google Play')
+            ->assertSee('/api/plans')
+            ->assertSee($freePlan->name);
+
+        // User can select a plan via API with a chosen payment method (e.g., google_play)
+        $this->actingAs($user)
+            ->postJson('/api/plans/select', [
+                'plan_id' => $paidPlan->id,
+                'payment_method' => 'google_play',
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('plan.id', $paidPlan->id)
+            ->assertJsonPath('quotas.promotions_left', 5);
+
+        $this->assertDatabaseHas('payments', [
+            'user_id' => $user->id,
+            'method' => 'google_play',
+            'status' => 'COMPLETED',
+        ]);
+
+        // Navigation badge reflects selected plan
+        $this->actingAs($user)
+            ->get('/my-listings')
+            ->assertStatus(200)
+            ->assertSee('★ Pro 7 Days')
+            ->assertSee('5');
+    }
+
+    public function test_promotion_plans_support_description_and_logical_is_deleted(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+
+        $activePlan = PromotionPlan::create([
+            'name' => 'Starter',
+            'description' => 'Descriere plan Starter',
+            'price' => 15,
+            'currency' => 'RON',
+            'durationDays' => 7,
+            'maxItems' => 2,
+        ]);
+
+        $deletedPlan = PromotionPlan::create([
+            'name' => 'Archived Plan',
+            'description' => 'Plan arhivat',
+            'price' => 99,
+            'currency' => 'RON',
+            'durationDays' => 30,
+            'maxItems' => null,
+            'is_deleted' => true,
+        ]);
+
+        $this->getJson('/api/plans')
+            ->assertStatus(200)
+            ->assertJsonCount(1)
+            ->assertJsonFragment([
+                'name' => 'Starter',
+                'description' => 'Descriere plan Starter',
+            ])
+            ->assertJsonMissing(['name' => 'Archived Plan']);
+
+        $this->actingAs($user)
+            ->postJson('/api/plans/select', ['plan_id' => $deletedPlan->id])
+            ->assertStatus(404);
+
+        $this->actingAs($user)
+            ->postJson('/api/plans/select', ['plan_id' => $activePlan->id])
+            ->assertStatus(200);
+    }
+
+    public function test_promote_and_demote_return_updated_quotas_via_api(): void
+    {
+        $owner = User::factory()->create(['role' => 'user']);
+        $category = Category::create(['name' => 'IT', 'description' => 'IT services']);
+
+        $listing = Listing::create([
+            'provider_id' => $owner->id,
+            'category_id' => $category->id,
+            'title' => 'Servicii Test',
+            'description' => 'Descriere test',
+            'price' => 100,
+            'priceType' => 'fix',
+            'city' => 'Suceava',
+            'status' => 'activ',
+            'is_featured' => false,
+        ]);
+
+        $freePlan = PromotionPlan::create([
+            'name' => 'Free',
+            'price' => 0,
+            'currency' => 'RON',
+            'durationDays' => 0,
+            'maxItems' => 1,
+        ]);
+
+        $paidPlan = PromotionPlan::create([
+            'name' => 'Pro 7 Days',
+            'price' => 29,
+            'currency' => 'RON',
+            'durationDays' => 7,
+            'maxItems' => 5,
+        ]);
+
+        // Select paid plan first
+        $this->actingAs($owner)
+            ->postJson('/api/plans/select', ['plan_id' => $paidPlan->id])
+            ->assertStatus(200)
+            ->assertJsonPath('quotas.free_listings_left', 0)
+            ->assertJsonPath('quotas.promotions_left', 5);
+
+        // Promoting listing frees up the free listing slot and consumes 1 promotion
+        $this->actingAs($owner)
+            ->postJson("/api/listings/{$listing->id}/promote", ['plan_id' => $paidPlan->id])
+            ->assertStatus(200)
+            ->assertJsonPath('quotas.free_listings_left', 1)
+            ->assertJsonPath('quotas.promotions_left', 4);
+
+        // GET /api/my-listings also returns the fresh quotas
+        $this->actingAs($owner)
+            ->getJson('/api/my-listings')
+            ->assertStatus(200)
+            ->assertJsonPath('quotas.free_listings_left', 1)
+            ->assertJsonPath('quotas.promotions_left', 4);
+
+        // Demoting listing back to free restores the promotion slot and uses the free listing slot
+        $this->actingAs($owner)
+            ->postJson("/api/listings/{$listing->id}/promote", ['plan_id' => $freePlan->id])
+            ->assertStatus(200)
+            ->assertJsonPath('quotas.free_listings_left', 0)
+            ->assertJsonPath('quotas.promotions_left', 5);
+    }
+
+    public function test_user_cannot_review_own_listing(): void
+    {
+        $owner = User::factory()->create(['role' => 'user']);
+        $category = Category::create(['name' => 'IT', 'description' => 'IT services']);
+
+        $listing = Listing::create([
+            'provider_id' => $owner->id,
+            'category_id' => $category->id,
+            'title' => 'Anunț Propriu',
+            'description' => 'Descriere test',
+            'price' => 150,
+            'priceType' => 'fix',
+            'city' => 'Suceava',
+            'status' => 'activ',
+            'is_featured' => false,
+        ]);
+
+        // Owner should not see the leave-review button or form on the listing details page
+        $this->actingAs($owner)
+            ->get("/listings/{$listing->id}")
+            ->assertStatus(200)
+            ->assertDontSee('id="leave-review-btn"', false)
+            ->assertDontSee('id="leave-review"', false);
+
+        // API rejects self-review with 403
+        $this->actingAs($owner)
+            ->postJson("/api/listings/{$listing->id}/reviews", [
+                'rating' => 5,
+                'comment' => 'Auto-recenzie interzisă',
+            ])
+            ->assertStatus(403);
+
+        // Web store rejects self-review
+        $this->actingAs($owner)
+            ->post('/reviews', [
+                'listing_id' => $listing->id,
+                'rating' => 5,
+                'comment' => 'Auto-recenzie interzisă',
+            ])
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('reviews', [
+            'listing_id' => $listing->id,
+            'author_id' => $owner->id,
+        ]);
     }
 
     public function test_promotion_is_blocked_when_plan_max_items_limit_is_reached(): void

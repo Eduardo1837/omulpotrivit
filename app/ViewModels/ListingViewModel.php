@@ -7,6 +7,7 @@ use App\Models\Listing;
 class ListingViewModel
 {
     public int $id;
+    public int $providerId;
     public string $title;
     public string $description;
     public string $priceFormatted;
@@ -19,6 +20,7 @@ class ListingViewModel
     public function __construct(Listing $listing)
     {
         $this->id = $listing->id;
+        $this->providerId = (int) $listing->provider_id;
         $this->title = $listing->title;
         $this->description = $listing->description;
         $this->priceFormatted = number_format($listing->price, 2) . ' RON';
