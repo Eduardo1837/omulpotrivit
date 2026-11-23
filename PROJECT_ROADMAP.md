@@ -52,6 +52,7 @@
   - `AppNotificationAccessor.php` — Creates and retrieves `AppNotification` records (`notifications` table).
   - `CategoryAccessor.php` — Eager-loads and manages CRUD for `Category` (`getAll()`, `getAllWithActiveListings()`, `getById()`, `create()`, `update()`, `delete()`).
   - `ListingAccessor.php` — Eager-loads and manages CRUD, active-only/featured-first queries, `countAll()`, user listing queries, and logical deletion (`softDelete()` setting `status = 'inactiv'`).
+  - `ListingImageAccessor.php` — Manages CRUD for `ListingImage` (`listing_images` table).
   - `PromotionPlanAccessor.php` — Manages read/CRUD queries for `PromotionPlan`.
   - `ReviewAccessor.php` — Manages visible (`is_hidden = false`) review queries and logical hiding (`setHidden()`, `toggleHidden()`).
   - `StatEventAccessor.php` — Records analytics events in `StatEvent` (`stat_events` table).
@@ -274,6 +275,7 @@ erDiagram
 | `POST` | `/api/listings/{id}/promote` | `auth:sanctum` | `Api\ListingController@promote` | Promotes owner's listing via `ListingService::promoteListing()`; returns `200`, `403`, `404`, or `422` |
 | `PATCH` | `/api/listings/{id}/toggle-status` | `auth:sanctum` | `Api\ListingController@toggleStatus` | Toggles owner's listing between `'activ'` and `'inactiv'` via `ListingService::toggleListingStatus()` |
 | `DELETE` | `/api/listings/{id}` | `auth:sanctum` | `Api\ListingController@destroy` | Permanent (`confirm_delete=delete`) or logical deletion (`status = 'inactiv'`) of owner's listing |
+| `DELETE` | `/api/listings/{id}/images/{imageId}` | `auth:sanctum` | `Api\ListingController@destroyImage` | Deletes a gallery image owned by the listing provider (or admin) |
 | `POST` | `/api/listings/{id}/reviews` | `auth:sanctum` | `Api\ReviewController@store` | Creates review for active listing via `ReviewService` (`201` / `422` duplicate) |
 | `PUT` | `/api/reviews/{id}` | `auth:sanctum` | `Api\ReviewController@update` | Updates author's own review (`200` / `403`) |
 | `DELETE` | `/api/reviews/{id}` | `auth:sanctum` | `Api\ReviewController@destroy` | Deletes author's own review (`200` / `403`) |

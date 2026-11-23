@@ -158,6 +158,7 @@
 
                 grid.innerHTML = filtered.map((item) => `
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden hover:shadow-md transition flex flex-col justify-between">
+                        ${item.image_url ? `<a href="/listings/${encodeURIComponent(item.id)}" class="block h-44 bg-gray-100 overflow-hidden"><img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.titlu)}" class="w-full h-full object-cover"></a>` : ''}
                         <div class="p-6">
                             <div class="flex items-center justify-between gap-2 mb-3">
                                 <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">

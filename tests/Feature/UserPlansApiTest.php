@@ -7,6 +7,8 @@ use App\Models\Listing;
 use App\Models\PromotionPlan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class UserPlansApiTest extends TestCase
@@ -463,6 +465,52 @@ class UserPlansApiTest extends TestCase
             ->assertSee('0744123456')
             ->assertSee('ion.meseriasu@example.com')
             ->assertSee('Contact Furnizor');
+    }
+
+    public function test_listing_supports_multiple_image_uploads_and_deletion(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create(['role' => 'user']);
+        $category = Category::create(['name' => 'Design', 'description' => 'Design services']);
+
+        $tinyPng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
+
+        $response = $this->actingAs($user)
+            ->post('/api/listings', [
+                'title' => 'Design Logo & Branding',
+                'description' => 'Pachet complet de identitate vizuală',
+                'price' => 300,
+                'priceType' => 'fix',
+                'city' => 'Cluj-Napoca',
+                'category_id' => $category->id,
+                'images' => [
+                    UploadedFile::fake()->createWithContent('cover.png', $tinyPng),
+                    UploadedFile::fake()->createWithContent('sample.png', $tinyPng),
+                ],
+            ], ['Accept' => 'application/json']);
+
+        $response->assertStatus(201)
+            ->assertJsonCount(2, 'images');
+
+        $listingId = $response->json('id');
+        $firstImageId = $response->json('images.0.id');
+        $firstImageUrl = $response->json('images.0.url');
+
+        $this->assertDatabaseCount('listing_images', 2);
+
+        // Details page renders the gallery image
+        $this->actingAs($user)
+            ->get("/listings/{$listingId}")
+            ->assertStatus(200)
+            ->assertSee($firstImageUrl, false);
+
+        // Owner can delete an image from the gallery
+        $this->actingAs($user)
+            ->deleteJson("/api/listings/{$listingId}/images/{$firstImageId}")
+            ->assertStatus(200);
+
+        $this->assertDatabaseCount('listing_images', 1);
     }
 
     public function test_promotion_is_blocked_when_plan_max_items_limit_is_reached(): void
