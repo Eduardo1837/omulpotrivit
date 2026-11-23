@@ -43,7 +43,7 @@
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-3">
                 <div x-data="notificationsBell()" x-init="init()" @click.outside="openBell = false" class="relative">
                     <button type="button"
-                            @click="openBell = !openBell; if (openBell) fetchNotifications()"
+                            @click="toggleBell()"
                             aria-label="Notificări"
                             class="relative inline-flex items-center justify-center p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,24 +63,16 @@
                          class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
                         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/70">
                             <span class="text-sm font-bold text-gray-900">Notificări</span>
-                            <div class="flex items-center gap-2">
-                                <button type="button"
-                                        x-show="unreadCount > 0"
-                                        @click="markAllRead()"
-                                        class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition">
-                                    Marchează toate citite
-                                </button>
-                                <button type="button"
-                                        x-show="notifications.length > 0"
-                                        @click="deleteAllNotifications()"
-                                        title="Șterge toate notificările"
-                                        aria-label="Șterge toate notificările"
-                                        class="inline-flex items-center justify-center p-1.5 rounded-md text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            </div>
+                            <button type="button"
+                                    x-show="notifications.length > 0"
+                                    @click="deleteAllNotifications()"
+                                    title="Șterge toate notificările"
+                                    aria-label="Șterge toate notificările"
+                                    class="inline-flex items-center justify-center p-1.5 rounded-md text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
                         </div>
 
                         <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
@@ -93,21 +85,11 @@
                             </template>
 
                             <template x-for="n in notifications" :key="n.id">
-                                <div class="px-4 py-3 text-sm flex items-start justify-between gap-3"
-                                     :class="n.isRead ? 'bg-white text-gray-600' : 'bg-indigo-50/50 text-gray-900'">
+                                <div class="px-4 py-3 text-sm bg-white text-gray-700">
                                     <div class="space-y-0.5 min-w-0">
-                                        <p class="text-xs leading-relaxed break-words"
-                                           :class="n.isRead ? 'font-normal' : 'font-semibold'"
-                                           x-text="n.message"></p>
+                                        <p class="text-xs leading-relaxed break-words" x-text="n.message"></p>
                                         <p class="text-[11px] text-gray-400" x-text="formatDate(n.created_at)"></p>
                                     </div>
-                                    <template x-if="!n.isRead">
-                                        <button type="button"
-                                                @click="markRead(n.id)"
-                                                class="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-md bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 transition">
-                                            Citită
-                                        </button>
-                                    </template>
                                 </div>
                             </template>
                         </div>
@@ -284,6 +266,16 @@
                         this.fetchNotifications();
                     }
                 }, 2000);
+            },
+
+            async toggleBell() {
+                this.openBell = !this.openBell;
+                if (!this.openBell) return;
+
+                await this.fetchNotifications();
+                if (this.unreadCount > 0) {
+                    await this.markAllRead();
+                }
             },
 
             async fetchNotifications() {
