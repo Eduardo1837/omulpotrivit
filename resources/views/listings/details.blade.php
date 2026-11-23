@@ -113,39 +113,37 @@
                 </div>
 
                 @auth
-                    @if(!$userHasReview)
-                        <form id="leave-review" action="{{ route('reviews.store') }}" method="POST" class="bg-gray-50 rounded-xl p-4 md:p-5 border border-gray-200/80 space-y-4">
-                            @csrf
-                            <input type="hidden" name="listing_id" value="{{ $listing->id }}">
-                            <input type="hidden" name="redirect_to_listing" value="1">
+                    <form id="leave-review" action="{{ route('reviews.store') }}" method="POST" class="{{ $userHasReview ? 'hidden ' : '' }}bg-gray-50 rounded-xl p-4 md:p-5 border border-gray-200/80 space-y-4">
+                        @csrf
+                        <input type="hidden" name="listing_id" value="{{ $listing->id }}">
+                        <input type="hidden" name="redirect_to_listing" value="1">
 
-                            <div class="flex flex-wrap items-center justify-between gap-4">
-                                <span class="text-sm font-bold text-gray-800">Adaugă o recenzie</span>
-                                <div class="flex items-center gap-2">
-                                    <label for="rating" class="text-xs font-semibold text-gray-600">Rating:</label>
-                                    <select id="rating" name="rating" required class="border-gray-300 rounded-lg text-sm py-1 px-2.5 focus:border-indigo-500 focus:ring-indigo-500">
-                                        <option value="5" {{ old('rating') == 5 ? 'selected' : '' }}>★★★★★ (5)</option>
-                                        <option value="4" {{ old('rating') == 4 ? 'selected' : '' }}>★★★★☆ (4)</option>
-                                        <option value="3" {{ old('rating') == 3 ? 'selected' : '' }}>★★★☆☆ (3)</option>
-                                        <option value="2" {{ old('rating') == 2 ? 'selected' : '' }}>★★☆☆☆ (2)</option>
-                                        <option value="1" {{ old('rating') == 1 ? 'selected' : '' }}>★☆☆☆☆ (1)</option>
-                                    </select>
-                                </div>
+                        <div class="flex flex-wrap items-center justify-between gap-4">
+                            <span class="text-sm font-bold text-gray-800">Adaugă o recenzie</span>
+                            <div class="flex items-center gap-2">
+                                <label for="rating" class="text-xs font-semibold text-gray-600">Rating:</label>
+                                <select id="rating" name="rating" required class="border-gray-300 rounded-lg text-sm py-1 px-2.5 focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="5" {{ old('rating') == 5 ? 'selected' : '' }}>★★★★★ (5)</option>
+                                    <option value="4" {{ old('rating') == 4 ? 'selected' : '' }}>★★★★☆ (4)</option>
+                                    <option value="3" {{ old('rating') == 3 ? 'selected' : '' }}>★★★☆☆ (3)</option>
+                                    <option value="2" {{ old('rating') == 2 ? 'selected' : '' }}>★★☆☆☆ (2)</option>
+                                    <option value="1" {{ old('rating') == 1 ? 'selected' : '' }}>★☆☆☆☆ (1)</option>
+                                </select>
                             </div>
+                        </div>
 
-                            <div>
-                                <textarea name="comment" rows="3" required
-                                          placeholder="Scrie părerea ta despre acest serviciu..."
-                                          class="w-full border-gray-300 rounded-lg shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('comment') }}</textarea>
-                            </div>
+                        <div>
+                            <textarea name="comment" rows="3" required
+                                      placeholder="Scrie părerea ta despre acest serviciu..."
+                                      class="w-full border-gray-300 rounded-lg shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('comment') }}</textarea>
+                        </div>
 
-                            <div class="flex justify-end">
-                                <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm shadow-sm transition">
-                                    Trimite Recenzia
-                                </button>
-                            </div>
-                        </form>
-                    @endif
+                        <div class="flex justify-end">
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm shadow-sm transition">
+                                Trimite Recenzia
+                            </button>
+                        </div>
+                    </form>
                 @endauth
 
                 <div id="reviews-list-container" class="space-y-4">
@@ -353,7 +351,11 @@
                 const refreshListingDetails = async () => {
                     try {
                         const response = await fetch(`/api/listings/${listingId}`, {
-                            headers: { 'Accept': 'application/json' },
+                            headers: {
+                                'Accept': 'application/json',
+                                'Cache-Control': 'no-cache',
+                            },
+                            cache: 'no-store',
                             credentials: 'same-origin',
                         });
                         if (!response.ok) return;
