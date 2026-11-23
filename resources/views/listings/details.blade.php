@@ -122,7 +122,7 @@
                             <span class="text-sm font-bold text-gray-800">Adaugă o recenzie</span>
                             <div class="flex items-center gap-3">
                                 <input type="hidden" id="rating" name="rating" value="{{ old('rating', 5) }}" required>
-                                <div id="star-rating-picker" class="flex items-center gap-1" role="radiogroup" aria-label="Rating">
+                                <div id="star-rating-picker" class="flex items-center gap-1 shrink-0" role="radiogroup" aria-label="Rating">
                                     @for($s = 1; $s <= 5; $s++)
                                         <button type="button"
                                                 data-star-value="{{ $s }}"
@@ -132,7 +132,7 @@
                                         </button>
                                     @endfor
                                 </div>
-                                <span id="rating-label" class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full min-w-[140px] text-center">
+                                <span id="rating-label" class="w-48 shrink-0 whitespace-nowrap text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full text-center">
                                     Serviciu excelent!
                                 </span>
                             </div>
@@ -395,7 +395,7 @@
                     if (ratingLabel && ratingDescriptions[val]) {
                         const meta = ratingDescriptions[val];
                         ratingLabel.textContent = meta.text;
-                        ratingLabel.className = `text-xs font-semibold border px-2.5 py-1 rounded-full min-w-[140px] text-center transition ${meta.cls}`;
+                        ratingLabel.className = `w-48 shrink-0 whitespace-nowrap text-xs font-semibold border px-2.5 py-1 rounded-full text-center transition ${meta.cls}`;
                     }
                 };
 
