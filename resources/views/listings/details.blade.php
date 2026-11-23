@@ -120,15 +120,21 @@
 
                         <div class="flex flex-wrap items-center justify-between gap-4">
                             <span class="text-sm font-bold text-gray-800">Adaugă o recenzie</span>
-                            <div class="flex items-center gap-2">
-                                <label for="rating" class="text-xs font-semibold text-gray-600">Rating:</label>
-                                <select id="rating" name="rating" required class="border-gray-300 rounded-lg text-sm py-1 px-2.5 focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="5" {{ old('rating') == 5 ? 'selected' : '' }}>★★★★★ (5)</option>
-                                    <option value="4" {{ old('rating') == 4 ? 'selected' : '' }}>★★★★☆ (4)</option>
-                                    <option value="3" {{ old('rating') == 3 ? 'selected' : '' }}>★★★☆☆ (3)</option>
-                                    <option value="2" {{ old('rating') == 2 ? 'selected' : '' }}>★★☆☆☆ (2)</option>
-                                    <option value="1" {{ old('rating') == 1 ? 'selected' : '' }}>★☆☆☆☆ (1)</option>
-                                </select>
+                            <div class="flex items-center gap-3">
+                                <input type="hidden" id="rating" name="rating" value="{{ old('rating', 5) }}" required>
+                                <div id="star-rating-picker" class="flex items-center gap-1" role="radiogroup" aria-label="Rating">
+                                    @for($s = 1; $s <= 5; $s++)
+                                        <button type="button"
+                                                data-star-value="{{ $s }}"
+                                                aria-label="{{ $s }} stele"
+                                                class="js-star-btn p-0.5 text-2xl leading-none transition-transform hover:scale-110 focus:outline-none text-amber-400">
+                                            ★
+                                        </button>
+                                    @endfor
+                                </div>
+                                <span id="rating-label" class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full min-w-[140px] text-center">
+                                    Serviciu excelent!
+                                </span>
                             </div>
                         </div>
 
@@ -366,6 +372,55 @@
                     }
                 };
 
+                const starPicker = document.getElementById('star-rating-picker');
+                const ratingInput = document.getElementById('rating');
+                const ratingLabel = document.getElementById('rating-label');
+                const ratingDescriptions = {
+                    1: { text: 'Experiență dezamăgitoare', cls: 'text-rose-700 bg-rose-50 border-rose-200' },
+                    2: { text: 'Serviciu sub așteptări', cls: 'text-orange-700 bg-orange-50 border-orange-200' },
+                    3: { text: 'Serviciu acceptabil', cls: 'text-amber-700 bg-amber-50 border-amber-200' },
+                    4: { text: 'Serviciu foarte bun', cls: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+                    5: { text: 'Serviciu excelent!', cls: 'text-amber-700 bg-amber-50 border-amber-200' },
+                };
+
+                const renderStarPicker = (activeValue) => {
+                    const val = Math.min(5, Math.max(1, Number(activeValue) || 5));
+                    if (starPicker) {
+                        starPicker.querySelectorAll('.js-star-btn').forEach((btn) => {
+                            const starVal = Number(btn.getAttribute('data-star-value'));
+                            btn.classList.toggle('text-amber-400', starVal <= val);
+                            btn.classList.toggle('text-gray-300', starVal > val);
+                        });
+                    }
+                    if (ratingLabel && ratingDescriptions[val]) {
+                        const meta = ratingDescriptions[val];
+                        ratingLabel.textContent = meta.text;
+                        ratingLabel.className = `text-xs font-semibold border px-2.5 py-1 rounded-full min-w-[140px] text-center transition ${meta.cls}`;
+                    }
+                };
+
+                if (starPicker && ratingInput) {
+                    renderStarPicker(ratingInput.value);
+
+                    starPicker.addEventListener('click', (e) => {
+                        const btn = e.target.closest('.js-star-btn');
+                        if (!btn) return;
+                        const val = Number(btn.getAttribute('data-star-value'));
+                        ratingInput.value = val;
+                        renderStarPicker(val);
+                    });
+
+                    starPicker.addEventListener('mouseover', (e) => {
+                        const btn = e.target.closest('.js-star-btn');
+                        if (!btn) return;
+                        renderStarPicker(btn.getAttribute('data-star-value'));
+                    });
+
+                    starPicker.addEventListener('mouseleave', () => {
+                        renderStarPicker(ratingInput.value);
+                    });
+                }
+
                 if (leaveReviewForm) {
                     leaveReviewForm.addEventListener('submit', async (e) => {
                         e.preventDefault();
@@ -392,6 +447,10 @@
 
                             showFeedback(data.message || 'Recenzia a fost adăugată cu succes!');
                             leaveReviewForm.reset();
+                            if (ratingInput) {
+                                ratingInput.value = 5;
+                                renderStarPicker(5);
+                            }
                             await refreshListingDetails();
                         } catch (err) {
                             showFeedback('Eroare de rețea la trimiterea recenziei.', true);
