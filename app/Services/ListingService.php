@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Accessors\ListingAccessor;
 use App\Accessors\PromotionPlanAccessor;
+use App\Events\ListingPromoted;
 use App\Models\Listing;
+use App\Models\PromotionPlan;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Cache;
@@ -148,12 +150,16 @@ class ListingService
     }
 
     /**
-     * Returnează planurile de promovare disponibile, din cache.
+     * Returnează planurile de promovare disponibile (din cache pentru cele vizibile).
      */
-    public function getPromotionPlans(): Collection
+    public function getPromotionPlans(bool $visibleOnly = true): Collection
     {
+        if (!$visibleOnly) {
+            return $this->promotionPlanAccessor->getAll(visibleOnly: false);
+        }
+
         return Cache::remember(self::CACHE_KEY_PROMOTION_PLANS, self::CACHE_TTL_SECONDS, function () {
-            return $this->promotionPlanAccessor->getAll();
+            return $this->promotionPlanAccessor->getAll(visibleOnly: true);
         });
     }
 
@@ -163,6 +169,14 @@ class ListingService
     public function getUserActivePlanId(int|string $userId): ?int
     {
         return $this->promotionPlanAccessor->getLatestActivePlanIdForUser($userId);
+    }
+
+    /**
+     * Returnează istoricul abonamentelor/promovărilor unui utilizator.
+     */
+    public function getUserPromotionsHistory(int|string $userId): Collection
+    {
+        return $this->promotionPlanAccessor->getUserPromotionsHistory($userId);
     }
 
     /**
@@ -336,6 +350,11 @@ class ListingService
                 'user_id' => $userId,
                 'plan_id' => $plan?->id,
             ]);
+
+            if ($isFeatured) {
+                $promotedListing = $this->listingAccessor->getById($listingId) ?? $listing;
+                ListingPromoted::dispatch($promotedListing, $userId, $plan);
+            }
         }
 
         return $updated;
@@ -396,6 +415,24 @@ class ListingService
     }
 
     /**
+     * Marchează o listare ca ștearsă (status = 'deleted') pentru păstrarea istoricului, fără a o elimina din DB.
+     */
+    public function markListingAsDeleted(int|string $id, ?int $actingUserId = null): bool
+    {
+        $deleted = $this->listingAccessor->markAsDeleted($id);
+
+        if ($deleted) {
+            $this->invalidateListingsCache();
+            Log::info('Listing marked as deleted (preserved in DB for history)', [
+                'listing_id' => $id,
+                'acting_user_id' => $actingUserId,
+            ]);
+        }
+
+        return $deleted;
+    }
+
+    /**
      * Ștergere permanentă (fizică) a unei listări din baza de date.
      */
     public function forceDeleteListing(int|string $id, ?int $actingUserId = null): bool
@@ -420,6 +457,94 @@ class ListingService
     {
         Cache::forget(self::CACHE_KEY_HOME_LISTINGS);
         Cache::forget(self::CACHE_KEY_ACTIVE_LISTINGS);
+    }
+
+    /**
+     * Găsește un plan de promovare după ID.
+     */
+    public function getPromotionPlanById(int|string $id): ?PromotionPlan
+    {
+        return $this->promotionPlanAccessor->getById($id);
+    }
+
+    /**
+     * Creează un plan de promovare nou, invalidează cache-ul și înregistrează în log.
+     */
+    public function createPromotionPlan(array $data): PromotionPlan
+    {
+        $plan = $this->promotionPlanAccessor->create($data);
+        $this->invalidatePromotionPlansCache();
+
+        Log::info('Promotion plan created', [
+            'plan_id' => $plan->id,
+            'name' => $plan->name,
+            'price' => $plan->price,
+        ]);
+
+        return $plan;
+    }
+
+    /**
+     * Actualizează un plan de promovare existent, invalidează cache-ul și înregistrează în log.
+     */
+    public function updatePromotionPlan(int|string $id, array $data): bool
+    {
+        $updated = $this->promotionPlanAccessor->update($id, $data);
+
+        if ($updated) {
+            $this->invalidatePromotionPlansCache();
+
+            Log::info('Promotion plan updated', [
+                'plan_id' => $id,
+                'updated_fields' => array_keys($data),
+            ]);
+        }
+
+        return $updated;
+    }
+
+    /**
+     * Comută vizibilitatea (ascuns/vizibil) unui plan de promovare.
+     */
+    public function togglePromotionPlanVisibility(int|string $id): ?PromotionPlan
+    {
+        $plan = $this->promotionPlanAccessor->toggleHidden($id);
+
+        if ($plan) {
+            $this->invalidatePromotionPlansCache();
+
+            Log::info('Promotion plan visibility toggled', [
+                'plan_id' => $id,
+                'is_hidden' => $plan->is_hidden,
+            ]);
+        }
+
+        return $plan;
+    }
+
+    /**
+     * Șterge un plan de promovare dacă nu are promovări asociate.
+     */
+    public function deletePromotionPlan(int|string $id): bool
+    {
+        if ($this->promotionPlanAccessor->hasPromotions($id)) {
+            Log::warning('Promotion plan deletion blocked: plan has associated promotions', [
+                'plan_id' => $id,
+            ]);
+            return false;
+        }
+
+        $deleted = $this->promotionPlanAccessor->delete($id);
+
+        if ($deleted) {
+            $this->invalidatePromotionPlansCache();
+
+            Log::info('Promotion plan deleted', [
+                'plan_id' => $id,
+            ]);
+        }
+
+        return $deleted;
     }
 
     /**

@@ -6,7 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class PromotionPlan extends Model
 {
-    protected $fillable = ['name', 'price', 'currency', 'durationDays', 'maxItems'];
+    protected $fillable = ['name', 'price', 'currency', 'durationDays', 'maxItems', 'is_hidden'];
+
+    protected $casts = [
+        'is_hidden' => 'boolean',
+    ];
 
     public function promotions()
     {

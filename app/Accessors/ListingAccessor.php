@@ -80,7 +80,7 @@ class ListingAccessor
     }
 
     /**
-     * Returnează listările unui utilizator (cu recenzii vizibile).
+     * Returnează listările unui utilizator (cu recenzii vizibile), excluzând cele șterse.
      */
     public function getByUserId(int|string $userId, bool $activeOnly = true): Collection
     {
@@ -89,6 +89,7 @@ class ListingAccessor
             'reviews' => fn ($q) => $q->where('is_hidden', false),
         ])
             ->where('provider_id', $userId)
+            ->where('status', '!=', 'deleted')
             ->latest();
 
         if ($activeOnly) {
@@ -177,6 +178,15 @@ class ListingAccessor
     {
         $listing = Listing::find($id);
         return $listing ? $listing->update(['status' => 'inactiv']) : false;
+    }
+
+    /**
+     * Marchează listarea ca ștearsă (status = 'deleted') pentru păstrarea istoricului.
+     */
+    public function markAsDeleted(int|string $id): bool
+    {
+        $listing = Listing::find($id);
+        return $listing ? $listing->update(['status' => 'deleted', 'is_featured' => false]) : false;
     }
 
     /**

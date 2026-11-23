@@ -79,6 +79,10 @@
                                     </td>
                                     <td class="py-3 px-4">
                                         <div class="flex items-center gap-2">
+                                            <a href="{{ route('admin.users.subscriptions', $user->id) }}" class="bg-indigo-600 hover:bg-indigo-700 text-white py-1 px-3 rounded text-xs font-semibold transition">
+                                                Abonamente
+                                            </a>
+
                                             <a href="{{ route('admin.users.edit', $user->id) }}" class="bg-amber-500 hover:bg-amber-600 text-white py-1 px-3 rounded text-xs font-semibold transition">
                                                 Editare
                                             </a>

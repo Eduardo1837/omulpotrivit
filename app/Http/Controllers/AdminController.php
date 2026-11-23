@@ -38,6 +38,18 @@ class AdminController extends Controller
         return view('admin.users.index', compact('users'));
     }
 
+    public function userSubscriptions($id)
+    {
+        $user = $this->userService->getUserById($id);
+        if (!$user) {
+            abort(404);
+        }
+
+        $promotions = $this->listingService->getUserPromotionsHistory($id);
+
+        return view('admin.users.subscriptions', compact('user', 'promotions'));
+    }
+
     public function createUser()
     {
         return view('admin.users.create');
@@ -287,5 +299,91 @@ class AdminController extends Controller
         $this->categoryService->deleteCategory($id);
 
         return redirect()->route('admin.categories.index')->with('success', 'Category deleted successfully.');
+    }
+
+    // --- PROMOTION PLANS ---
+
+    public function plansIndex()
+    {
+        $plans = $this->listingService->getPromotionPlans(visibleOnly: false);
+
+        return view('admin.plans.index', compact('plans'));
+    }
+
+    public function createPlan()
+    {
+        return view('admin.plans.create');
+    }
+
+    public function storePlan(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'currency' => 'required|string|max:10',
+            'durationDays' => 'required|integer|min:0',
+            'maxItems' => 'nullable|integer|min:1',
+        ]);
+
+        $this->listingService->createPromotionPlan($validated);
+
+        return redirect()->route('admin.plans.index')->with('success', 'Planul de promovare a fost creat cu succes.');
+    }
+
+    public function editPlan($id)
+    {
+        $plan = $this->listingService->getPromotionPlanById($id);
+        if (!$plan) {
+            abort(404);
+        }
+
+        return view('admin.plans.edit', compact('plan'));
+    }
+
+    public function updatePlan(Request $request, $id)
+    {
+        $plan = $this->listingService->getPromotionPlanById($id);
+        if (!$plan) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'currency' => 'required|string|max:10',
+            'durationDays' => 'required|integer|min:0',
+            'maxItems' => 'nullable|integer|min:1',
+        ]);
+
+        $this->listingService->updatePromotionPlan($id, $validated);
+
+        return redirect()->route('admin.plans.index')->with('success', 'Planul de promovare a fost actualizat cu succes.');
+    }
+
+    public function togglePlanVisibility($id)
+    {
+        $plan = $this->listingService->togglePromotionPlanVisibility($id);
+        if (!$plan) {
+            abort(404);
+        }
+
+        $statusLabel = $plan->is_hidden ? 'ascuns' : 'vizibil';
+
+        return redirect()->route('admin.plans.index')->with('success', "Planul \"{$plan->name}\" este acum {$statusLabel}.");
+    }
+
+    public function destroyPlan($id)
+    {
+        $plan = $this->listingService->getPromotionPlanById($id);
+        if (!$plan) {
+            abort(404);
+        }
+
+        if (!$this->listingService->deletePromotionPlan($id)) {
+            return redirect()->route('admin.plans.index')
+                ->with('error', 'Planul nu poate fi șters deoarece are promovări asociate. Îl poți ascunde în schimb.');
+        }
+
+        return redirect()->route('admin.plans.index')->with('success', 'Planul de promovare a fost șters cu succes.');
     }
 }

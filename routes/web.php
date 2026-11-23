@@ -83,6 +83,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/users/create', [AdminController::class, 'createUser'])->name('users.create');
         Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
         Route::get('/users/{id}/edit', [AdminController::class, 'edit'])->name('users.edit');
+        Route::get('/users/{id}/subscriptions', [AdminController::class, 'userSubscriptions'])->name('users.subscriptions');
         Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('users.update');
         Route::delete('/users/{id}', [AdminController::class, 'destroyUser'])->name('users.destroy');
         
@@ -105,6 +106,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/listings/{id}/reviews', [AdminController::class, 'listingReviews'])->name('listings.reviews');
         Route::patch('/reviews/{id}/toggle-visibility', [AdminController::class, 'toggleReviewVisibility'])->name('reviews.toggle');
         Route::delete('/reviews/{id}', [AdminController::class, 'destroyReview'])->name('reviews.destroy');
+
+        // Promotion Plans
+        Route::get('/plans', [AdminController::class, 'plansIndex'])->name('plans.index');
+        Route::get('/plans/create', [AdminController::class, 'createPlan'])->name('plans.create');
+        Route::post('/plans', [AdminController::class, 'storePlan'])->name('plans.store');
+        Route::get('/plans/{id}/edit', [AdminController::class, 'editPlan'])->name('plans.edit');
+        Route::put('/plans/{id}', [AdminController::class, 'updatePlan'])->name('plans.update');
+        Route::patch('/plans/{id}/toggle-visibility', [AdminController::class, 'togglePlanVisibility'])->name('plans.toggle');
+        Route::delete('/plans/{id}', [AdminController::class, 'destroyPlan'])->name('plans.destroy');
     });
         
 });
