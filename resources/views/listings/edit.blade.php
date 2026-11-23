@@ -87,6 +87,18 @@
                         </select>
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Galerie Imagini</label>
+                        <div id="existing-images-container" class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-3 hidden"></div>
+                        <input type="file"
+                               id="images"
+                               name="images[]"
+                               multiple
+                               accept="image/jpeg,image/png,image/webp"
+                               class="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                        <div id="images-preview" class="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-3 hidden"></div>
+                    </div>
+
                     <div class="pt-2">
                         <label class="inline-flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" id="is_featured" name="is_featured" value="1" {{ old('is_featured', $listing->is_featured) ? 'checked' : '' }}
@@ -130,6 +142,71 @@
                     feedback.classList.remove('hidden');
                 };
 
+                const existingImagesContainer = document.getElementById('existing-images-container');
+                const imagesInput = document.getElementById('images');
+                const imagesPreview = document.getElementById('images-preview');
+
+                const renderExistingImages = (images) => {
+                    if (!existingImagesContainer) return;
+                    const list = Array.isArray(images) ? images : [];
+                    existingImagesContainer.innerHTML = '';
+                    existingImagesContainer.classList.toggle('hidden', list.length === 0);
+
+                    list.forEach((img) => {
+                        const wrapper = document.createElement('div');
+                        wrapper.id = `listing-image-${img.id}`;
+                        wrapper.className = 'relative group rounded-lg overflow-hidden border border-gray-200';
+                        wrapper.innerHTML = `
+                            <img src="${img.url}" alt="Imagine anunț" class="w-full h-24 object-cover">
+                            <button type="button"
+                                    data-delete-image="${img.id}"
+                                    title="Șterge imaginea"
+                                    class="absolute top-1 right-1 w-6 h-6 rounded-full bg-rose-600/90 hover:bg-rose-700 text-white text-xs font-bold flex items-center justify-center shadow">
+                                &times;
+                            </button>
+                        `;
+                        existingImagesContainer.appendChild(wrapper);
+                    });
+                };
+
+                if (existingImagesContainer) {
+                    existingImagesContainer.addEventListener('click', async (e) => {
+                        const btn = e.target.closest('[data-delete-image]');
+                        if (!btn) return;
+                        const imageId = btn.getAttribute('data-delete-image');
+                        try {
+                            const res = await fetch(`/api/listings/${listingId}/images/${imageId}`, {
+                                method: 'DELETE',
+                                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                                credentials: 'same-origin',
+                            });
+                            if (res.ok) {
+                                document.getElementById(`listing-image-${imageId}`)?.remove();
+                                if (existingImagesContainer.children.length === 0) {
+                                    existingImagesContainer.classList.add('hidden');
+                                }
+                            }
+                        } catch (err) {
+                            showError('Nu s-a putut șterge imaginea.');
+                        }
+                    });
+                }
+
+                if (imagesInput && imagesPreview) {
+                    imagesInput.addEventListener('change', () => {
+                        const files = Array.from(imagesInput.files || []);
+                        imagesPreview.innerHTML = '';
+                        imagesPreview.classList.toggle('hidden', files.length === 0);
+                        files.forEach((file) => {
+                            const img = document.createElement('img');
+                            img.src = URL.createObjectURL(file);
+                            img.alt = file.name;
+                            img.className = 'w-full h-24 object-cover rounded-lg border border-indigo-200';
+                            imagesPreview.appendChild(img);
+                        });
+                    });
+                }
+
                 try {
                     const [catRes, ownRes] = await Promise.all([
                         fetch('/api/categories', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }),
@@ -147,6 +224,7 @@
                         if (document.getElementById('city')) document.getElementById('city').value = own.oras ?? '';
                         if (document.getElementById('is_featured')) document.getElementById('is_featured').checked = Boolean(own.este_promovat);
                         if (own.category_id) currentCategoryId = own.category_id;
+                        renderExistingImages(own.images);
                     }
 
                     if (catRes.ok && categorySelect) {
@@ -171,26 +249,29 @@
                         e.preventDefault();
                         if (feedback) feedback.classList.add('hidden');
 
-                        const payload = {
-                            title: document.getElementById('title')?.value ?? '',
-                            description: document.getElementById('description')?.value ?? '',
-                            price: Number(document.getElementById('price')?.value ?? 0),
-                            priceType: document.getElementById('priceType')?.value ?? 'fix',
-                            city: document.getElementById('city')?.value ?? '',
-                            category_id: Number(categorySelect?.value ?? 0),
-                            is_featured: Boolean(document.getElementById('is_featured')?.checked),
-                        };
+                        const formData = new FormData();
+                        formData.append('_method', 'PUT');
+                        formData.append('title', document.getElementById('title')?.value ?? '');
+                        formData.append('description', document.getElementById('description')?.value ?? '');
+                        formData.append('price', document.getElementById('price')?.value ?? '0');
+                        formData.append('priceType', document.getElementById('priceType')?.value ?? 'fix');
+                        formData.append('city', document.getElementById('city')?.value ?? '');
+                        formData.append('category_id', categorySelect?.value ?? '');
+                        formData.append('is_featured', document.getElementById('is_featured')?.checked ? '1' : '0');
+
+                        Array.from(imagesInput?.files || []).forEach((file) => {
+                            formData.append('images[]', file);
+                        });
 
                         try {
                             const response = await fetch(`/api/listings/${listingId}`, {
-                                method: 'PUT',
+                                method: 'POST',
                                 headers: {
-                                    'Content-Type': 'application/json',
                                     'Accept': 'application/json',
                                     'X-CSRF-TOKEN': csrfToken,
                                 },
                                 credentials: 'same-origin',
-                                body: JSON.stringify(payload),
+                                body: formData,
                             });
 
                             const data = await response.json();

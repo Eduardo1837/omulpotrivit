@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/plans/select', [ListingController::class, 'selectPlan']);
     Route::patch('/listings/{id}/toggle-status', [ListingController::class, 'toggleStatus'])->whereNumber('id');
     Route::delete('/listings/{id}', [ListingController::class, 'destroy'])->whereNumber('id');
+    Route::delete('/listings/{id}/images/{imageId}', [ListingController::class, 'destroyImage'])->whereNumber(['id', 'imageId']);
 
     Route::post('/listings/{id}/reviews', [ReviewController::class, 'store'])->whereNumber('id');
     Route::put('/reviews/{id}', [ReviewController::class, 'update'])->whereNumber('id');

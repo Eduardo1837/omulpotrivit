@@ -89,6 +89,17 @@
                         </select>
                     </div>
 
+                    <div>
+                        <label for="images" class="block text-sm font-bold text-gray-700 mb-1">Imagini Serviciu (opțional, max 8)</label>
+                        <input type="file"
+                               id="images"
+                               name="images[]"
+                               multiple
+                               accept="image/jpeg,image/png,image/webp"
+                               class="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                        <div id="images-preview" class="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-3 hidden"></div>
+                    </div>
+
                     <div class="pt-2">
                         <label class="inline-flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" id="is_featured" name="is_featured" value="1" {{ old('is_featured') ? 'checked' : '' }}
@@ -153,31 +164,52 @@
                     // Păstrează categoriile redate de server
                 }
 
+                const imagesInput = document.getElementById('images');
+                const imagesPreview = document.getElementById('images-preview');
+
+                if (imagesInput && imagesPreview) {
+                    imagesInput.addEventListener('change', () => {
+                        const files = Array.from(imagesInput.files || []);
+                        imagesPreview.innerHTML = '';
+                        imagesPreview.classList.toggle('hidden', files.length === 0);
+                        files.forEach((file) => {
+                            const url = URL.createObjectURL(file);
+                            const img = document.createElement('img');
+                            img.src = url;
+                            img.alt = file.name;
+                            img.className = 'w-full h-24 object-cover rounded-lg border border-gray-200';
+                            imagesPreview.appendChild(img);
+                        });
+                    });
+                }
+
                 if (form) {
                     form.addEventListener('submit', async (e) => {
                         e.preventDefault();
                         if (feedback) feedback.classList.add('hidden');
 
-                        const payload = {
-                            title: document.getElementById('title')?.value ?? '',
-                            description: document.getElementById('description')?.value ?? '',
-                            price: Number(document.getElementById('price')?.value ?? 0),
-                            priceType: document.getElementById('priceType')?.value ?? 'fix',
-                            city: document.getElementById('city')?.value ?? '',
-                            category_id: Number(categorySelect?.value ?? 0),
-                            is_featured: Boolean(document.getElementById('is_featured')?.checked),
-                        };
+                        const formData = new FormData();
+                        formData.append('title', document.getElementById('title')?.value ?? '');
+                        formData.append('description', document.getElementById('description')?.value ?? '');
+                        formData.append('price', document.getElementById('price')?.value ?? '0');
+                        formData.append('priceType', document.getElementById('priceType')?.value ?? 'fix');
+                        formData.append('city', document.getElementById('city')?.value ?? '');
+                        formData.append('category_id', categorySelect?.value ?? '');
+                        formData.append('is_featured', document.getElementById('is_featured')?.checked ? '1' : '0');
+
+                        Array.from(imagesInput?.files || []).forEach((file) => {
+                            formData.append('images[]', file);
+                        });
 
                         try {
                             const response = await fetch('/api/listings', {
                                 method: 'POST',
                                 headers: {
-                                    'Content-Type': 'application/json',
                                     'Accept': 'application/json',
                                     'X-CSRF-TOKEN': csrfToken,
                                 },
                                 credentials: 'same-origin',
-                                body: JSON.stringify(payload),
+                                body: formData,
                             });
 
                             const data = await response.json();

@@ -72,6 +72,34 @@
                         </div>
                     </div>
 
+                    <!-- Image Gallery -->
+                    @if(!empty($listing->images) || $listing->imageUrl)
+                        @php
+                            $galleryImages = !empty($listing->images)
+                                ? $listing->images
+                                : [['id' => 0, 'url' => $listing->imageUrl]];
+                        @endphp
+                        <div class="mb-8 space-y-3">
+                            <div class="rounded-xl overflow-hidden border border-gray-200 bg-gray-100">
+                                <img id="gallery-main-image"
+                                     src="{{ $galleryImages[0]['url'] }}"
+                                     alt="{{ $listing->title }}"
+                                     class="w-full max-h-96 object-cover">
+                            </div>
+                            @if(count($galleryImages) > 1)
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach($galleryImages as $idx => $img)
+                                        <button type="button"
+                                                onclick="document.getElementById('gallery-main-image').src = '{{ $img['url'] }}'"
+                                                class="rounded-lg overflow-hidden border-2 border-transparent hover:border-indigo-500 focus:border-indigo-500 transition">
+                                            <img src="{{ $img['url'] }}" alt="{{ $listing->title }} #{{ $idx + 1 }}" class="w-20 h-16 object-cover">
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+
                     <!-- Description -->
                     <div class="prose max-w-none mb-8">
                         <h3 class="text-sm font-bold uppercase text-gray-400 tracking-wider mb-2">Descriere Serviciu</h3>
