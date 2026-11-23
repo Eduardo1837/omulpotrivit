@@ -61,6 +61,12 @@ class ReviewController extends Controller
             return response()->json(['message' => 'Anunțul nu a fost găsit.'], 404);
         }
 
+        if ((int) $listing->provider_id === (int) $authorId) {
+            return response()->json([
+                'message' => 'Nu poți lăsa o recenzie propriului tău anunț.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
             'comment' => ['required', 'string', 'max:1000'],

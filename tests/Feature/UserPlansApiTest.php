@@ -314,6 +314,52 @@ class UserPlansApiTest extends TestCase
             ->assertJsonPath('quotas.promotions_left', 5);
     }
 
+    public function test_user_cannot_review_own_listing(): void
+    {
+        $owner = User::factory()->create(['role' => 'user']);
+        $category = Category::create(['name' => 'IT', 'description' => 'IT services']);
+
+        $listing = Listing::create([
+            'provider_id' => $owner->id,
+            'category_id' => $category->id,
+            'title' => 'Anunț Propriu',
+            'description' => 'Descriere test',
+            'price' => 150,
+            'priceType' => 'fix',
+            'city' => 'Suceava',
+            'status' => 'activ',
+            'is_featured' => false,
+        ]);
+
+        // Owner should not see the leave-review form on the listing details page
+        $this->actingAs($owner)
+            ->get("/listings/{$listing->id}")
+            ->assertStatus(200)
+            ->assertDontSee('id="leave-review"', false);
+
+        // API rejects self-review with 403
+        $this->actingAs($owner)
+            ->postJson("/api/listings/{$listing->id}/reviews", [
+                'rating' => 5,
+                'comment' => 'Auto-recenzie interzisă',
+            ])
+            ->assertStatus(403);
+
+        // Web store rejects self-review
+        $this->actingAs($owner)
+            ->post('/reviews', [
+                'listing_id' => $listing->id,
+                'rating' => 5,
+                'comment' => 'Auto-recenzie interzisă',
+            ])
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('reviews', [
+            'listing_id' => $listing->id,
+            'author_id' => $owner->id,
+        ]);
+    }
+
     public function test_promotion_is_blocked_when_plan_max_items_limit_is_reached(): void
     {
         $owner = User::factory()->create(['role' => 'user']);

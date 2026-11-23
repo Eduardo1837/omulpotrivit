@@ -113,7 +113,8 @@
                 </div>
 
                 @auth
-                    <form id="leave-review" action="{{ route('reviews.store') }}" method="POST" class="{{ $userHasReview ? 'hidden ' : '' }}bg-gray-50 rounded-xl p-4 md:p-5 border border-gray-200/80 space-y-4">
+                    @if(auth()->id() !== (int) ($listing->providerId ?? 0))
+                        <form id="leave-review" action="{{ route('reviews.store') }}" method="POST" class="{{ $userHasReview ? 'hidden ' : '' }}bg-gray-50 rounded-xl p-4 md:p-5 border border-gray-200/80 space-y-4">
                         @csrf
                         <input type="hidden" name="listing_id" value="{{ $listing->id }}">
                         <input type="hidden" name="redirect_to_listing" value="1">
@@ -144,12 +145,13 @@
                                       class="w-full border-gray-300 rounded-lg shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('comment') }}</textarea>
                         </div>
 
-                        <div class="flex justify-end">
-                            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm shadow-sm transition">
-                                Trimite Recenzia
-                            </button>
-                        </div>
-                    </form>
+                            <div class="flex justify-end">
+                                <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm shadow-sm transition">
+                                    Trimite Recenzia
+                                </button>
+                            </div>
+                        </form>
+                    @endif
                 @endauth
 
                 <div id="reviews-list-container" class="space-y-4">
