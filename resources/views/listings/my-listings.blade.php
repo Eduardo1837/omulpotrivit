@@ -38,18 +38,50 @@
             <!-- Dynamic API Feedback Banner -->
             <div id="api-feedback" class="hidden px-4 py-3 rounded-xl shadow-sm text-sm border"></div>
 
-            <!-- Promotion Plans Section (loaded via GET /api/plans) -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-6">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+            <!-- Quotas & Current Plan Summary -->
+            @php
+                $currentPlan = $quotas['current_plan'] ?? null;
+                $isPaidCurrentPlan = $currentPlan && (float) $currentPlan->price > 0;
+                $currentPlanName = $currentPlan?->name ?? 'Gratuit';
+                $freeLeft = $quotas['free_listings_left'] ?? 0;
+                $freeLimit = $quotas['free_listings_limit'] ?? 1;
+                $promotionsLeft = $quotas['promotions_left'] ?? 0;
+                $promotionsLimit = $quotas['promotions_limit'] ?? 0;
+            @endphp
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5 flex items-center justify-between gap-4">
                     <div>
-                        <h3 class="text-base font-bold text-gray-900">Planuri de Promovare Disponibile</h3>
-                        <p class="text-xs text-gray-500">Selectează un plan (gratuit sau plătit), apoi apasă „Aplică Planul” pe oricare dintre anunțurile tale.</p>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Planul tău curent</p>
+                        <div class="mt-1.5 flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold {{ $isPaidCurrentPlan ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-gray-100 text-gray-700 border border-gray-200' }}">
+                                {{ $isPaidCurrentPlan ? '★ ' : '' }}{{ $currentPlanName }}
+                            </span>
+                        </div>
                     </div>
-                    <span id="selected-plan-label" class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 hidden"></span>
+                    <a href="{{ route('plans.index') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition shrink-0">
+                        Schimbă planul
+                    </a>
                 </div>
 
-                <div id="plans-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="col-span-full text-xs text-gray-400 py-4 text-center">Se încarcă planurile de promovare...</div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Anunțuri gratuite disponibile</p>
+                    <div class="mt-1 flex items-baseline gap-2">
+                        <span class="text-2xl font-black {{ $freeLeft > 0 ? 'text-emerald-600' : 'text-gray-800' }}">{{ $freeLeft }}</span>
+                        <span class="text-xs text-gray-500">din {{ $freeLimit }} gratuit activ</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Promovări rămase</p>
+                    <div class="mt-1 flex items-baseline gap-2">
+                        @if($promotionsLimit === null)
+                            <span class="text-2xl font-black text-amber-600">Nelimitat</span>
+                            <span class="text-xs text-gray-500">conform planului {{ $currentPlanName }}</span>
+                        @else
+                            <span class="text-2xl font-black {{ $promotionsLeft > 0 ? 'text-amber-600' : 'text-gray-800' }}">{{ $promotionsLeft }}</span>
+                            <span class="text-xs text-gray-500">din {{ $promotionsLimit }} disponibile</span>
+                        @endif
+                    </div>
                 </div>
             </div>
 
@@ -284,7 +316,7 @@
 
     <script>
         let selectedPlanId = @json($activePlanId ?? null);
-        let loadedPlans = [];
+        let loadedPlans = @json($promotionPlans ?? []);
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
         function showApiFeedback(message, isError = false) {
@@ -295,85 +327,6 @@
                 ? 'px-4 py-3 rounded-xl shadow-sm text-sm border bg-rose-50 border-rose-200 text-rose-800'
                 : 'px-4 py-3 rounded-xl shadow-sm text-sm border bg-emerald-50 border-emerald-200 text-emerald-800';
             banner.classList.remove('hidden');
-        }
-
-        function selectPlan(planId) {
-            selectedPlanId = planId;
-            const plan = loadedPlans.find(p => p.id === planId);
-            const label = document.getElementById('selected-plan-label');
-            if (label && plan) {
-                label.textContent = `Plan selectat: ${plan.name} (${Number(plan.price).toFixed(2)} ${plan.currency})`;
-                label.classList.remove('hidden');
-            }
-            renderPlans();
-        }
-
-        function renderPlans() {
-            const grid = document.getElementById('plans-grid');
-            if (!grid) return;
-
-            if (!loadedPlans.length) {
-                grid.innerHTML = '<div class="col-span-full text-xs text-gray-500 py-4 text-center">Nu există planuri configurate.</div>';
-                return;
-            }
-
-            grid.innerHTML = loadedPlans.map(plan => {
-                const isPaid = Number(plan.price) > 0;
-                const isSelected = selectedPlanId === plan.id;
-                const borderClass = isSelected
-                    ? 'border-amber-500 ring-2 ring-amber-200 bg-amber-50/30'
-                    : 'border-gray-200 bg-gray-50/40';
-                const maxItemsText = plan.maxItems ? `Max ${plan.maxItems} anunț(uri)` : 'Anunțuri nelimitate';
-                const durationText = plan.durationDays > 0 ? `${plan.durationDays} zile promovare` : 'Fără promovare';
-
-                return `
-                    <div class="rounded-xl border p-4 flex flex-col justify-between transition ${borderClass}">
-                        <div>
-                            <div class="flex items-center justify-between gap-2">
-                                <h4 class="font-bold text-gray-900 text-sm">${plan.name}</h4>
-                                <span class="text-xs font-bold px-2 py-0.5 rounded-full ${isPaid ? 'bg-amber-100 text-amber-800' : 'bg-gray-200 text-gray-700'}">
-                                    ${Number(plan.price).toFixed(2)} ${plan.currency}
-                                </span>
-                            </div>
-                            <ul class="mt-2 space-y-1 text-xs text-gray-600">
-                                <li>• ${durationText}</li>
-                                <li>• ${maxItemsText}</li>
-                            </ul>
-                        </div>
-                        <div class="mt-3">
-                            <button type="button" onclick="selectPlan(${plan.id})" class="w-full py-1.5 px-3 rounded-lg text-xs font-semibold transition ${isSelected ? 'bg-amber-500 text-white' : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-50'}">
-                                ${isSelected ? '✓ Plan Selectat' : 'Selectează Planul'}
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        async function loadPlans() {
-            try {
-                const response = await fetch('/api/plans', {
-                    headers: { 'Accept': 'application/json' },
-                    credentials: 'same-origin',
-                });
-                if (!response.ok) throw new Error('Eroare la încărcarea planurilor.');
-                loadedPlans = await response.json();
-                if (selectedPlanId && loadedPlans.some(p => p.id === Number(selectedPlanId))) {
-                    selectPlan(Number(selectedPlanId));
-                } else {
-                    const defaultPaid = loadedPlans.find(p => Number(p.price) > 0);
-                    if (defaultPaid) {
-                        selectPlan(defaultPaid.id);
-                    } else {
-                        renderPlans();
-                    }
-                }
-            } catch (error) {
-                const grid = document.getElementById('plans-grid');
-                if (grid) {
-                    grid.innerHTML = `<div class="col-span-full text-xs text-rose-600 py-4 text-center">${error.message}</div>`;
-                }
-            }
         }
 
         function syncListingPromotionUI(listingId, isFeatured, status) {
@@ -535,23 +488,7 @@
 
         function upgradeToNextPlan() {
             closeUpgradeModal();
-            const currentPlan = loadedPlans.find(p => p.id === selectedPlanId);
-            const currentMax = currentPlan?.maxItems ?? 0;
-            const higherPlan = loadedPlans.find(p =>
-                Number(p.price) > 0 &&
-                p.id !== selectedPlanId &&
-                (p.maxItems === null || Number(p.maxItems) > Number(currentMax))
-            );
-
-            if (higherPlan) {
-                selectPlan(higherPlan.id);
-                showApiFeedback(`Planul „${higherPlan.name}” a fost selectat pentru upgrade. Apasă din nou „★ Promovează Anunțul” pe anunțul dorit.`);
-            }
-
-            const plansGrid = document.getElementById('plans-grid');
-            if (plansGrid) {
-                plansGrid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            window.location.href = "{{ route('plans.index') }}";
         }
 
         let deleteListingId = null;
@@ -602,7 +539,5 @@
                 showApiFeedback('Eroare de rețea la ștergerea anunțului.', true);
             }
         }
-
-        document.addEventListener('DOMContentLoaded', loadPlans);
     </script>
 </x-app-layout>

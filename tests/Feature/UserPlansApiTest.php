@@ -146,15 +146,58 @@ class UserPlansApiTest extends TestCase
         $this->assertDatabaseMissing('listings', ['id' => $listing->id]);
     }
 
-    public function test_my_listings_page_renders_api_controls_and_plans_container(): void
+    public function test_my_listings_page_renders_api_controls_and_quotas_without_plans_grid(): void
     {
         $user = User::factory()->create(['role' => 'user']);
 
         $response = $this->actingAs($user)->get('/my-listings');
 
         $response->assertStatus(200)
+            ->assertSee('Anunțuri gratuite disponibile')
+            ->assertSee('Promovări rămase')
+            ->assertSee('/api/listings/')
+            ->assertDontSee('Planuri de Promovare Disponibile');
+    }
+
+    public function test_dedicated_plans_page_renders_and_user_can_select_plan_via_api(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+        $freePlan = PromotionPlan::create([
+            'name' => 'Free',
+            'price' => 0,
+            'currency' => 'RON',
+            'durationDays' => 0,
+            'maxItems' => 1,
+        ]);
+        $paidPlan = PromotionPlan::create([
+            'name' => 'Pro 7 Days',
+            'price' => 29,
+            'currency' => 'RON',
+            'durationDays' => 7,
+            'maxItems' => 5,
+        ]);
+
+        // Dedicated plans page renders plans container and current plan badge
+        $this->actingAs($user)
+            ->get('/my-plan')
+            ->assertStatus(200)
             ->assertSee('Planuri de Promovare Disponibile')
-            ->assertSee('/api/plans');
+            ->assertSee('/api/plans')
+            ->assertSee($freePlan->name);
+
+        // User can select a plan via API
+        $this->actingAs($user)
+            ->postJson('/api/plans/select', ['plan_id' => $paidPlan->id])
+            ->assertStatus(200)
+            ->assertJsonPath('plan.id', $paidPlan->id)
+            ->assertJsonPath('quotas.promotions_left', 5);
+
+        // Navigation badge reflects selected plan
+        $this->actingAs($user)
+            ->get('/my-listings')
+            ->assertStatus(200)
+            ->assertSee('★ Pro 7 Days')
+            ->assertSee('5');
     }
 
     public function test_promotion_is_blocked_when_plan_max_items_limit_is_reached(): void
