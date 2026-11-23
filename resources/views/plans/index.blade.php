@@ -133,13 +133,22 @@
 
                 <!-- Animated Payment Success State -->
                 <div id="paymentSuccessState" class="hidden py-6 text-center space-y-4">
-                    <div class="flex items-center justify-center gap-3">
-                        <div class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center animate-[popIn_0.4s_ease-out_forwards]">
+                    <div class="flex flex-col items-center justify-center gap-3">
+                        <!-- Horizontal :) with two horizontal dots and left-to-right fading smile -->
+                        <div class="flex flex-col items-center justify-center gap-1 select-none" aria-label=":)">
+                            <div class="flex items-center justify-center gap-3">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-[popIn_0.35s_ease-out_forwards]"></span>
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-[popIn_0.35s_0.1s_ease-out_both]"></span>
+                            </div>
+                            <span class="text-4xl font-black leading-none text-amber-500 inline-block rotate-90 animate-[smileReveal_0.7s_0.25s_ease-out_both]">)</span>
+                        </div>
+
+                        <!-- Animated Checkmark under the :) -->
+                        <div class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center animate-[popIn_0.4s_0.3s_ease-out_both]">
                             <svg class="w-9 h-9 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path class="checkmark-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                             </svg>
                         </div>
-                        <span class="text-4xl font-black text-amber-500 inline-block animate-[smileBounce_0.8s_ease-in-out_infinite]">:)</span>
                     </div>
                     <div>
                         <h4 class="text-lg font-extrabold text-gray-900">Plată finalizată cu succes!</h4>
@@ -160,14 +169,20 @@
             70% { transform: scale(1.12); opacity: 1; }
             100% { transform: scale(1); opacity: 1; }
         }
-        @keyframes smileBounce {
-            0%, 100% { transform: translateY(0) rotate(-4deg) scale(1); }
-            50% { transform: translateY(-6px) rotate(6deg) scale(1.15); }
+        @keyframes smileReveal {
+            0% {
+                clip-path: inset(100% 0 0 0);
+                opacity: 0;
+            }
+            100% {
+                clip-path: inset(0 0 0 0);
+                opacity: 1;
+            }
         }
         .checkmark-path {
             stroke-dasharray: 36;
             stroke-dashoffset: 36;
-            animation: drawCheck 0.45s 0.15s ease-out forwards;
+            animation: drawCheck 0.45s 0.45s ease-out forwards;
         }
     </style>
 
@@ -277,7 +292,7 @@
                 document.getElementById('paymentSuccessText').textContent = `Planul „${planName}” este acum activ pe contul tău.`;
                 document.getElementById('paymentSuccessState').classList.remove('hidden');
 
-                await new Promise(resolve => setTimeout(resolve, 1400));
+                await new Promise(resolve => setTimeout(resolve, 3400));
                 closePaymentModal();
             } else {
                 btn.disabled = false;
