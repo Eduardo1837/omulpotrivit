@@ -53,4 +53,21 @@ class NotificationService
 
         return $count;
     }
+
+    /**
+     * Șterge toate notificările utilizatorului autentificat.
+     */
+    public function deleteAllForUser(int|string $userId): int
+    {
+        $count = $this->notificationAccessor->deleteAllByUserId($userId);
+
+        if ($count > 0) {
+            Log::info('All notifications deleted by user', [
+                'user_id' => $userId,
+                'deleted_count' => $count,
+            ]);
+        }
+
+        return $count;
+    }
 }

@@ -53,4 +53,17 @@ class NotificationController extends Controller
             'updated_count' => $updatedCount,
         ]);
     }
+
+    /**
+     * Șterge toate notificările utilizatorului autentificat.
+     */
+    public function destroyAll(Request $request): JsonResponse
+    {
+        $deletedCount = $this->notificationService->deleteAllForUser($request->user()->id);
+
+        return response()->json([
+            'message' => 'Toate notificările au fost șterse.',
+            'deleted_count' => $deletedCount,
+        ]);
+    }
 }
