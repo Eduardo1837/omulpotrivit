@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Accessors\AppNotificationAccessor;
 use App\Events\ListingPromoted;
+use App\Events\NotificationCreated;
 
 class SendPromotionNotification
 {
@@ -21,11 +22,13 @@ class SendPromotionNotification
     {
         $planLabel = $event->plan ? " cu planul {$event->plan->name}" : '';
 
-        $this->notificationAccessor->create([
+        $notification = $this->notificationAccessor->create([
             'user_id' => $event->userId,
             'kind' => 'listing_promoted',
             'message' => "Anunțul \"{$event->listing->title}\" a fost promovat{$planLabel}.",
             'isRead' => false,
         ]);
+
+        NotificationCreated::dispatch($notification);
     }
 }

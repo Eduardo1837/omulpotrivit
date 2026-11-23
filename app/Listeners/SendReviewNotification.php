@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Accessors\AppNotificationAccessor;
+use App\Events\NotificationCreated;
 use App\Events\ReviewCreated;
 
 class SendReviewNotification
@@ -28,11 +29,13 @@ class SendReviewNotification
 
         $authorName = $review->author?->name ?? 'Un utilizator';
 
-        $this->notificationAccessor->create([
+        $notification = $this->notificationAccessor->create([
             'user_id' => $listing->provider_id,
             'kind' => 'review_received',
             'message' => "{$authorName} a lăsat o recenzie ({$review->rating}★) la anunțul \"{$listing->title}\".",
             'isRead' => false,
         ]);
+
+        NotificationCreated::dispatch($notification);
     }
 }
