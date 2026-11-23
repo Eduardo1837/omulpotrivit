@@ -41,19 +41,19 @@ class ListingAccessor
     }
 
     /**
-     * Găsește o listare după ID împreună cu datele categoriei.
+     * Găsește o listare după ID împreună cu datele categoriei și ale furnizorului.
      */
     public function getById(int|string $id): ?Listing
     {
-        return Listing::with('category')->find($id);
+        return Listing::with(['category', 'provider'])->find($id);
     }
 
     /**
-     * Găsește o listare activă după ID împreună cu datele categoriei.
+     * Găsește o listare activă după ID împreună cu datele categoriei și ale furnizorului.
      */
     public function getActiveById(int|string $id): ?Listing
     {
-        return Listing::with('category')
+        return Listing::with(['category', 'provider'])
             ->where('status', 'activ')
             ->find($id);
     }

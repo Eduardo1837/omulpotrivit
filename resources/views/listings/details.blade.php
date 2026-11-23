@@ -42,10 +42,16 @@
                         </span>
                     </div>
 
-                    <!-- Title -->
-                    <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 mb-4">
+                    <!-- Title & Author -->
+                    <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 mb-2">
                         {{ $listing->title }}
                     </h1>
+                    <p class="text-sm text-gray-500 mb-4 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        Publicat de: <span class="font-semibold text-gray-800">{{ $listing->providerName }}</span>
+                    </p>
 
                     <!-- Price & Location Callout -->
                     <div class="bg-indigo-50/50 rounded-xl p-4 md:p-6 mb-6 flex flex-wrap items-center justify-between gap-4 border border-indigo-100">
@@ -72,6 +78,37 @@
                         <p class="text-gray-700 whitespace-pre-line leading-relaxed text-base">
                             {{ $listing->description }}
                         </p>
+                    </div>
+
+                    <!-- Contact Section -->
+                    <div class="mb-8 bg-gray-50 rounded-xl p-5 border border-gray-200/80">
+                        <h3 class="text-sm font-bold uppercase text-gray-500 tracking-wider mb-3">Contact Furnizor</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                            <div>
+                                <span class="block text-xs text-gray-400 font-medium">Nume</span>
+                                <span class="font-semibold text-gray-900">{{ $listing->providerName }}</span>
+                            </div>
+                            <div>
+                                <span class="block text-xs text-gray-400 font-medium">Telefon</span>
+                                @if($listing->providerPhone)
+                                    <a href="tel:{{ $listing->providerPhone }}" class="font-semibold text-indigo-600 hover:text-indigo-800 transition">
+                                        {{ $listing->providerPhone }}
+                                    </a>
+                                @else
+                                    <span class="text-gray-500">Nespecificat</span>
+                                @endif
+                            </div>
+                            <div>
+                                <span class="block text-xs text-gray-400 font-medium">Email</span>
+                                @if($listing->providerEmail)
+                                    <a href="mailto:{{ $listing->providerEmail }}" class="font-semibold text-indigo-600 hover:text-indigo-800 transition break-all">
+                                        {{ $listing->providerEmail }}
+                                    </a>
+                                @else
+                                    <span class="text-gray-500">Nespecificat</span>
+                                @endif
+                            </div>
+                        </div>
                     </div>
 
                     @php

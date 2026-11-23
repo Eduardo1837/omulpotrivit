@@ -8,6 +8,9 @@ class ListingViewModel
 {
     public int $id;
     public int $providerId;
+    public string $providerName;
+    public ?string $providerPhone;
+    public ?string $providerEmail;
     public string $title;
     public string $description;
     public string $priceFormatted;
@@ -21,6 +24,9 @@ class ListingViewModel
     {
         $this->id = $listing->id;
         $this->providerId = (int) $listing->provider_id;
+        $this->providerName = $listing->provider?->name ?? 'Furnizor';
+        $this->providerPhone = $listing->provider?->phone ?: null;
+        $this->providerEmail = $listing->provider?->email ?: null;
         $this->title = $listing->title;
         $this->description = $listing->description;
         $this->priceFormatted = number_format($listing->price, 2) . ' RON';

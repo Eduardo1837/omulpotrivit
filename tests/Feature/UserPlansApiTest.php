@@ -433,6 +433,38 @@ class UserPlansApiTest extends TestCase
         ]);
     }
 
+    public function test_listing_details_shows_provider_name_and_contact_info(): void
+    {
+        $viewer = User::factory()->create(['role' => 'user']);
+        $provider = User::factory()->create([
+            'role' => 'user',
+            'name' => 'Ion Meseriașu',
+            'phone' => '0744123456',
+            'email' => 'ion.meseriasu@example.com',
+        ]);
+        $category = Category::create(['name' => 'Instalații', 'description' => 'Instalații']);
+
+        $listing = Listing::create([
+            'provider_id' => $provider->id,
+            'category_id' => $category->id,
+            'title' => 'Reparații Sanitare',
+            'description' => 'Intervenții rapide',
+            'price' => 120,
+            'priceType' => 'fix',
+            'city' => 'Suceava',
+            'status' => 'activ',
+            'is_featured' => false,
+        ]);
+
+        $this->actingAs($viewer)
+            ->get("/listings/{$listing->id}")
+            ->assertStatus(200)
+            ->assertSee('Ion Meseriașu')
+            ->assertSee('0744123456')
+            ->assertSee('ion.meseriasu@example.com')
+            ->assertSee('Contact Furnizor');
+    }
+
     public function test_promotion_is_blocked_when_plan_max_items_limit_is_reached(): void
     {
         $owner = User::factory()->create(['role' => 'user']);
