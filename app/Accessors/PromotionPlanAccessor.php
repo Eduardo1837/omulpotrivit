@@ -10,11 +10,11 @@ use Illuminate\Database\Eloquent\Collection;
 class PromotionPlanAccessor
 {
     /**
-     * Returnează planurile de promovare ordonate după preț (implicit doar cele vizibile).
+     * Returnează planurile de promovare ordonate după preț (excluzând cele șterse logic; implicit doar cele vizibile).
      */
     public function getAll(bool $visibleOnly = true): Collection
     {
-        $query = PromotionPlan::orderBy('price');
+        $query = PromotionPlan::where('is_deleted', false)->orderBy('price');
 
         if ($visibleOnly) {
             $query->where('is_hidden', false);
@@ -24,11 +24,11 @@ class PromotionPlanAccessor
     }
 
     /**
-     * Găsește un plan de promovare după ID.
+     * Găsește un plan de promovare după ID (excluzând cele șterse logic).
      */
     public function getById(int|string $id): ?PromotionPlan
     {
-        return PromotionPlan::find($id);
+        return PromotionPlan::where('is_deleted', false)->find($id);
     }
 
     /**
@@ -49,11 +49,12 @@ class PromotionPlanAccessor
     }
 
     /**
-     * Șterge un plan de promovare după ID.
+     * Șterge logic un plan de promovare după ID (is_deleted = true).
      */
     public function delete(int|string $id): bool
     {
-        return (bool) PromotionPlan::destroy($id);
+        $plan = PromotionPlan::where('is_deleted', false)->find($id);
+        return $plan ? $plan->update(['is_deleted' => true]) : false;
     }
 
     /**
@@ -123,7 +124,8 @@ class PromotionPlanAccessor
      */
     public function getFreePlan(): ?PromotionPlan
     {
-        return PromotionPlan::where('is_hidden', false)
+        return PromotionPlan::where('is_deleted', false)
+            ->where('is_hidden', false)
             ->where('price', '<=', 0)
             ->orderBy('id')
             ->first();

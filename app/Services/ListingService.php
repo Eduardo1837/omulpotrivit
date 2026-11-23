@@ -197,7 +197,7 @@ class ListingService
     public function selectUserPlan(int $userId, int $planId): ?PromotionPlan
     {
         $plan = $this->promotionPlanAccessor->getById($planId);
-        if (!$plan || $plan->is_hidden) {
+        if (!$plan || $plan->is_hidden || $plan->is_deleted) {
             return null;
         }
 
