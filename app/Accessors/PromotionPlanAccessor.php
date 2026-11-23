@@ -170,9 +170,20 @@ class PromotionPlanAccessor
 
     /**
      * Returnează ID-ul ultimului plan activ selectat/folosit de utilizator.
+     * Prioritizăm abonamentul la nivel de utilizator (listing_id = null) dacă există.
      */
     public function getLatestActivePlanIdForUser(int|string $userId): ?int
     {
+        $userPlan = Promotion::where('user_id', $userId)
+            ->whereNull('listing_id')
+            ->where('status', 'ACTIVE')
+            ->latest('id')
+            ->first();
+
+        if ($userPlan) {
+            return $userPlan->plan_id;
+        }
+
         $promotion = Promotion::where('user_id', $userId)
             ->where('status', 'ACTIVE')
             ->latest('id')

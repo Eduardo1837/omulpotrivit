@@ -66,8 +66,8 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5">
                     <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Anunțuri gratuite disponibile</p>
                     <div class="mt-1 flex items-baseline gap-2">
-                        <span class="text-2xl font-black {{ $freeLeft > 0 ? 'text-emerald-600' : 'text-gray-800' }}">{{ $freeLeft }}</span>
-                        <span class="text-xs text-gray-500">din {{ $freeLimit }} gratuit activ</span>
+                        <span id="free-listings-left" class="text-2xl font-black {{ $freeLeft > 0 ? 'text-emerald-600' : 'text-gray-800' }}">{{ $freeLeft }}</span>
+                        <span id="free-listings-limit" class="text-xs text-gray-500">din {{ $freeLimit }} gratuit activ</span>
                     </div>
                 </div>
 
@@ -75,11 +75,11 @@
                     <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Promovări rămase</p>
                     <div class="mt-1 flex items-baseline gap-2">
                         @if($promotionsLimit === null)
-                            <span class="text-2xl font-black text-amber-600">Nelimitat</span>
-                            <span class="text-xs text-gray-500">conform planului {{ $currentPlanName }}</span>
+                            <span id="promotions-left" class="text-2xl font-black text-amber-600">Nelimitat</span>
+                            <span id="promotions-limit-label" class="text-xs text-gray-500">conform planului {{ $currentPlanName }}</span>
                         @else
-                            <span class="text-2xl font-black {{ $promotionsLeft > 0 ? 'text-amber-600' : 'text-gray-800' }}">{{ $promotionsLeft }}</span>
-                            <span class="text-xs text-gray-500">din {{ $promotionsLimit }} disponibile</span>
+                            <span id="promotions-left" class="text-2xl font-black {{ $promotionsLeft > 0 ? 'text-amber-600' : 'text-gray-800' }}">{{ $promotionsLeft }}</span>
+                            <span id="promotions-limit-label" class="text-xs text-gray-500">din {{ $promotionsLimit }} disponibile</span>
                         @endif
                     </div>
                 </div>
@@ -329,6 +329,57 @@
             banner.classList.remove('hidden');
         }
 
+        function updateQuotasUI(quotas) {
+            if (!quotas) return;
+
+            const freeEl = document.getElementById('free-listings-left');
+            const freeLimitEl = document.getElementById('free-listings-limit');
+            if (freeEl) {
+                const freeLeft = Number(quotas.free_listings_left ?? 0);
+                freeEl.textContent = freeLeft;
+                freeEl.className = `text-2xl font-black ${freeLeft > 0 ? 'text-emerald-600' : 'text-gray-800'}`;
+            }
+            if (freeLimitEl && quotas.free_listings_limit !== undefined) {
+                freeLimitEl.textContent = `din ${quotas.free_listings_limit} gratuit activ`;
+            }
+
+            const promoEl = document.getElementById('promotions-left');
+            const promoLimitEl = document.getElementById('promotions-limit-label');
+            if (promoEl) {
+                if (quotas.promotions_limit === null) {
+                    promoEl.textContent = 'Nelimitat';
+                    promoEl.className = 'text-2xl font-black text-amber-600';
+                    if (promoLimitEl) {
+                        const planName = quotas.current_plan?.name ?? 'Selectat';
+                        promoLimitEl.textContent = `conform planului ${planName}`;
+                    }
+                } else {
+                    const promoLeft = Number(quotas.promotions_left ?? 0);
+                    promoEl.textContent = promoLeft;
+                    promoEl.className = `text-2xl font-black ${promoLeft > 0 ? 'text-amber-600' : 'text-gray-800'}`;
+                    if (promoLimitEl) {
+                        promoLimitEl.textContent = `din ${quotas.promotions_limit} disponibile`;
+                    }
+                }
+            }
+        }
+
+        async function refreshUserQuotas() {
+            try {
+                const response = await fetch('/api/my-listings', {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) return;
+                const data = await response.json();
+                if (data.quotas) {
+                    updateQuotasUI(data.quotas);
+                }
+            } catch (error) {
+                // Silent fallback if background quota refresh fails
+            }
+        }
+
         function syncListingPromotionUI(listingId, isFeatured, status) {
             const featuredBadge = document.getElementById(`featured-badge-${listingId}`);
             if (featuredBadge) {
@@ -394,6 +445,7 @@
                 }
 
                 syncListingPromotionUI(listingId, Boolean(data.listing?.este_promovat), data.listing?.status);
+                await refreshUserQuotas();
                 window.dispatchEvent(new CustomEvent('notifications-updated'));
                 showApiFeedback(data.message || 'Anunțul a fost promovat!');
             } catch (error) {
@@ -427,6 +479,7 @@
                 }
 
                 syncListingPromotionUI(listingId, Boolean(data.listing?.este_promovat), data.listing?.status);
+                await refreshUserQuotas();
                 showApiFeedback(data.message || 'Promovarea a fost anulată.');
             } catch (error) {
                 showApiFeedback('Eroare de rețea la anularea promovării.', true);
@@ -468,6 +521,7 @@
                         : 'px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200';
                 }
 
+                await refreshUserQuotas();
                 showApiFeedback(data.message || 'Statusul a fost actualizat.');
             } catch (error) {
                 showApiFeedback('Eroare de rețea la actualizarea statusului.', true);
@@ -534,6 +588,7 @@
                 const card = document.getElementById(`listing-card-${deleteListingId}`);
                 if (card) card.remove();
                 closeDeleteModal();
+                await refreshUserQuotas();
                 showApiFeedback(data.message || 'Anunțul a fost șters permanent.');
             } catch (error) {
                 showApiFeedback('Eroare de rețea la ștergerea anunțului.', true);

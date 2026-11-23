@@ -241,6 +241,68 @@ class UserPlansApiTest extends TestCase
             ->assertStatus(200);
     }
 
+    public function test_promote_and_demote_return_updated_quotas_via_api(): void
+    {
+        $owner = User::factory()->create(['role' => 'user']);
+        $category = Category::create(['name' => 'IT', 'description' => 'IT services']);
+
+        $listing = Listing::create([
+            'provider_id' => $owner->id,
+            'category_id' => $category->id,
+            'title' => 'Servicii Test',
+            'description' => 'Descriere test',
+            'price' => 100,
+            'priceType' => 'fix',
+            'city' => 'Suceava',
+            'status' => 'activ',
+            'is_featured' => false,
+        ]);
+
+        $freePlan = PromotionPlan::create([
+            'name' => 'Free',
+            'price' => 0,
+            'currency' => 'RON',
+            'durationDays' => 0,
+            'maxItems' => 1,
+        ]);
+
+        $paidPlan = PromotionPlan::create([
+            'name' => 'Pro 7 Days',
+            'price' => 29,
+            'currency' => 'RON',
+            'durationDays' => 7,
+            'maxItems' => 5,
+        ]);
+
+        // Select paid plan first
+        $this->actingAs($owner)
+            ->postJson('/api/plans/select', ['plan_id' => $paidPlan->id])
+            ->assertStatus(200)
+            ->assertJsonPath('quotas.free_listings_left', 0)
+            ->assertJsonPath('quotas.promotions_left', 5);
+
+        // Promoting listing frees up the free listing slot and consumes 1 promotion
+        $this->actingAs($owner)
+            ->postJson("/api/listings/{$listing->id}/promote", ['plan_id' => $paidPlan->id])
+            ->assertStatus(200)
+            ->assertJsonPath('quotas.free_listings_left', 1)
+            ->assertJsonPath('quotas.promotions_left', 4);
+
+        // GET /api/my-listings also returns the fresh quotas
+        $this->actingAs($owner)
+            ->getJson('/api/my-listings')
+            ->assertStatus(200)
+            ->assertJsonPath('quotas.free_listings_left', 1)
+            ->assertJsonPath('quotas.promotions_left', 4);
+
+        // Demoting listing back to free restores the promotion slot and uses the free listing slot
+        $this->actingAs($owner)
+            ->postJson("/api/listings/{$listing->id}/promote", ['plan_id' => $freePlan->id])
+            ->assertStatus(200)
+            ->assertJsonPath('quotas.free_listings_left', 0)
+            ->assertJsonPath('quotas.promotions_left', 5);
+    }
+
     public function test_promotion_is_blocked_when_plan_max_items_limit_is_reached(): void
     {
         $owner = User::factory()->create(['role' => 'user']);

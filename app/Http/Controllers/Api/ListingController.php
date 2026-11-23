@@ -61,6 +61,7 @@ class ListingController extends Controller
             'can_create_more' => $this->listingService->canUserCreateListing($userId),
             'active_plan_id' => $this->listingService->getUserActivePlanId($userId),
             'promotion_plans' => $this->listingService->getPromotionPlans(),
+            'quotas' => $this->listingService->getUserQuotas($userId),
         ], 200);
     }
 
@@ -301,6 +302,7 @@ class ListingController extends Controller
         return response()->json([
             'message' => $message,
             'listing' => new ListingResource($updatedListing),
+            'quotas' => $this->listingService->getUserQuotas($userId),
         ], 200);
     }
 
