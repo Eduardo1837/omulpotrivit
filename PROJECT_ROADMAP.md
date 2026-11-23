@@ -59,6 +59,7 @@
   - `UserAccessor.php` — Manages `User` queries (`getAllWithListings()`, `getAll()`, `getById()`, `getByEmail()`, `count()`) and CRUD.
 - **`app/Events/`** (Domain Events)
   - `ListingPromoted.php` — Dispatched from `ListingService::promoteListing()` when a listing is promoted (`is_featured = true`).
+  - `NotificationCreated.php` — `ShouldBroadcastNow` event broadcasting new `AppNotification` records over Reverb to `private-App.Models.User.{id}`.
   - `ReviewCreated.php` — Dispatched from `ReviewService::createReview()` when a new review is created.
 - **`app/Listeners/`** (Event Listeners)
   - `SendPromotionNotification.php` — Listens to `ListingPromoted` and creates an unread `AppNotification` via `AppNotificationAccessor`.

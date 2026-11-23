@@ -240,6 +240,7 @@
 <script>
     function notificationsBell() {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const authUserId = {{ Auth::id() ?? 'null' }};
 
         return {
             openBell: false,
@@ -247,25 +248,29 @@
             hasLoaded: false,
             notifications: [],
             unreadCount: 0,
-            pollTimer: null,
+            echoBound: false,
 
             init() {
                 this.fetchNotifications();
                 window.addEventListener('notifications-updated', () => this.fetchNotifications());
-                window.addEventListener('focus', () => this.fetchNotifications());
-                document.addEventListener('visibilitychange', () => {
-                    if (document.visibilityState === 'visible') {
-                        this.fetchNotifications();
-                    }
-                });
-                if (this.pollTimer) {
-                    clearInterval(this.pollTimer);
+
+                if (authUserId && window.Echo && !this.echoBound) {
+                    this.echoBound = true;
+                    window.Echo.private(`App.Models.User.${authUserId}`)
+                        .listen('.notification.created', (payload) => {
+                            if (payload?.notification) {
+                                const exists = this.notifications.some(n => n.id === payload.notification.id);
+                                if (!exists) {
+                                    this.notifications.unshift(payload.notification);
+                                    if (!payload.notification.isRead) {
+                                        this.unreadCount += 1;
+                                    }
+                                }
+                            } else {
+                                this.fetchNotifications();
+                            }
+                        });
                 }
-                this.pollTimer = setInterval(() => {
-                    if (document.visibilityState === 'visible') {
-                        this.fetchNotifications();
-                    }
-                }, 2000);
             },
 
             async toggleBell() {
